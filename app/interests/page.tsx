@@ -1,88 +1,25 @@
-"use client"
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase-heesara'
-import Link from 'next/link'
+'use client';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase-heesara';
+import Link from 'next/link';
 
 export default function InterestsPage(){
-  const [sent, setSent] = useState<any[]>([])
-  const [received, setReceived] = useState<any[]>([])
-  const [myProfileId, setMyProfileId] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(()=>{ load() },[])
-
-  const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    let myId = ''
-    if(user){
-      const { data: p } = await supabase.from('profiles').select('id').eq('user_id', user.id).order('created_at',{ascending:false}).limit(1).single()
-      if(p) myId = p.id
-    } else {
-      const { data: p } = await supabase.from('profiles').select('id').order('created_at',{ascending:false}).limit(1).single()
-      if(p) myId = p.id
-    }
-    setMyProfileId(myId)
-    if(!myId){ setLoading(false); return }
-
-    const { data: sentData } = await supabase.from('interests').select('*, to_profile_data:to_profile(*)').eq('from_profile', myId).order('created_at',{ascending:false})
-    const { data: recData } = await supabase.from('interests').select('*, from_profile_data:from_profile(*)').eq('to_profile', myId).order('created_at',{ascending:false})
-    
-    // Fetch profiles manually if join fails
-    const fetchProfiles = async (interests:any[], field:string) => {
-      const enriched = []
-      for(let interest of interests||[]){
-        const pid = interest[field]
-        const { data: prof } = await supabase.from('profiles').select('id, full_name, job_main, district_en, dob').eq('id', pid).single()
-        enriched.push({...interest, profile: prof})
-      }
-      return enriched
-    }
-
-    if(sentData){
-      const enriched = await fetchProfiles(sentData, 'to_profile')
-      setSent(enriched)
-    }
-    if(recData){
-      const enriched = await fetchProfiles(recData, 'from_profile')
-      setReceived(enriched)
-    }
-    setLoading(false)
+  const [rec,setRec]=useState<any[]>([]); const [sent,setSent]=useState<any[]>([]); const [loading,setLoading]=useState(true);
+  async function load(){
+    const {data:me}=await supabase.from('profiles').select('*').limit(1).single();
+    if(!me){setLoading(false);return;}
+    const {data:r}=await supabase.from('interests').select('*,from_profile:from_profile_id(*),to_profile:to_profile_id(*)').eq('to_profile_id',me.id).order('created_at',{ascending:false});
+    const {data:s}=await supabase.from('interests').select('*,from_profile:from_profile_id(*),to_profile:to_profile_id(*)').eq('from_profile_id',me.id).order('created_at',{ascending:false});
+    setRec(r||[]); setSent(s||[]); setLoading(false);
   }
-
-  if(loading) return <main className="p-8 text-center">Loading interests...</main>
-
+  useEffect(()=>{load();},[]);
+  const upd=async(id:string,st:string)=>{await supabase.from('interests').update({status:st}).eq('id',id); load();};
+  if(loading) return <div className='p-8'>Loading...</div>;
   return (
-    <main className="min-h-screen bg-[#FFF8E7] p-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-[24px] p-6 shadow">
-        <div className="flex justify-between"><h1 className="text-2xl font-bold text-[#7B1F2A]">💌 Interests</h1><Link href="/matches" className="border px-4 py-2 rounded-xl text-sm">Matches</Link></div>
-        
-        <div className="mt-6 grid md:grid-cols-2 gap-6">
-          <div>
-            <h2 className="font-bold">📤 ඔබ යැවූ (Sent) - {sent.length}</h2>
-            <div className="mt-2 space-y-2">
-              {sent.map((s:any)=>(
-                <div key={s.id} className="p-3 bg-gray-50 rounded-xl text-sm flex justify-between">
-                  <div><p className="font-bold">{s.profile?.full_name || s.to_profile}</p><p className="text-xs">{s.profile?.job_main} | {s.status} | Score {s.compatibility_score}</p></div>
-                  <Link href={`/profile/${s.to_profile}`} className="text-xs border px-2 py-1 rounded h-fit">View</Link>
-                </div>
-              ))}
-              {sent.length===0 && <p className="text-xs text-gray-500">තවම නෑ</p>}
-            </div>
-          </div>
-          <div>
-            <h2 className="font-bold">📥 ඔබට ආව (Received) - {received.length}</h2>
-            <div className="mt-2 space-y-2">
-              {received.map((r:any)=>(
-                <div key={r.id} className="p-3 bg-green-50 rounded-xl text-sm flex justify-between border border-green-200">
-                  <div><p className="font-bold">{r.profile?.full_name || r.from_profile}</p><p className="text-xs">{r.profile?.job_main} | {r.status}</p></div>
-                  <Link href={`/profile/${r.from_profile}`} className="text-xs bg-[#2D8A4E] text-white px-2 py-1 rounded h-fit">View</Link>
-                </div>
-              ))}
-              {received.length===0 && <p className="text-xs text-gray-500">තවම නෑ</p>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
+    <div className='max-w-5xl mx-auto p-6 space-y-8'>
+      <h1 className='text-3xl font-bold'>💌 Interests V10 - Accept to Unlock Contact</h1>
+      <div><h2 className='font-bold text-xl mb-3'>📥 Received {rec.length}</h2>{rec.map((i:any)=><div key={i.id} className='border rounded-xl p-4 flex justify-between'><div><Link href={`/profile/${i.from_profile?.id}`} className='font-bold text-blue-600'>{i.from_profile?.name}</Link><div className='text-sm'>{i.from_profile?.age} - {i.from_profile?.district} - {i.porondam_at_time?.total||'?'} /20</div><div className='text-sm font-bold'>{i.status}</div></div><div>{i.status==='pending' && <><button onClick={()=>upd(i.id,'accepted')} className='bg-green-600 text-white px-4 py-2 rounded-full mr-2'>Accept</button><button onClick={()=>upd(i.id,'rejected')} className='bg-gray-300 px-4 py-2 rounded-full'>Reject</button></>}{i.status==='accepted' && <span className='text-green-600'>✅ Contact unlocked</span>}</div></div>)}</div>
+      <div><h2 className='font-bold text-xl mb-3'>📤 Sent {sent.length}</h2>{sent.map((i:any)=><div key={i.id} className='border rounded-xl p-4 flex justify-between'><div><Link href={`/profile/${i.to_profile?.id}`} className='font-bold text-blue-600'>{i.to_profile?.name}</Link><div className='text-sm'>{i.status==='pending'?'⏳ Waiting':i.status==='accepted'?'✅ Accepted - View contact': '❌ Rejected'}</div></div><Link href={`/profile/${i.to_profile?.id}`} className='text-blue-600 underline'>View</Link></div>)}</div>
+    </div>
+  );
 }

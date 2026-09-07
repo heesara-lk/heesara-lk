@@ -1,134 +1,224 @@
-"use client"
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase-heesara'
-import Link from 'next/link'
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase-heesara';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { getProfileExpiryInfo, getRenewalPrice, isProfileActive } from '@/lib/subscription';
 
-const MAX_PROFILES_PER_USER = 2 // 2 profiles per email to avoid scam
+const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com'];
+function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
+const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
+const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
+function isAdminEmail(email?:string|null){ if(!email) return false; const low=email.toLowerCase(); const norm=normalizeEmail(email); return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm); }
 
 export default function AccountPage(){
-  const [user, setUser] = useState<any>(null)
-  const [profiles, setProfiles] = useState<any[]>([])
-  const [allProfilesCount, setAllProfilesCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const router=useRouter();
+  const [profiles,setProfiles]=useState<any[]>([]);
+  const [allCount,setAllCount]=useState(0);
+  const [loading,setLoading]=useState(true);
+  const [user,setUser]=useState<any>(null);
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [received,setReceived]=useState<any[]>([]);
+  const [sent,setSent]=useState<any[]>([]);
 
-  useEffect(()=>{ load() },[])
-
-  const load = async () => {
-    const { data: { user: u } } = await supabase.auth.getUser()
-    const { data: { session } } = await supabase.auth.getSession()
-    setUser(u || session?.user || null)
-
-    if(u || session?.user){
-      const uid = (u || session?.user)?.id
-      const { data: myProfs } = await supabase.from('profiles').select('*').eq('user_id', uid).order('created_at',{ascending:false})
-      setProfiles(myProfs||[])
-    } else {
-      // Test mode - show latest profiles as if they are yours
-      const { data: myProfs } = await supabase.from('profiles').select('*').order('created_at',{ascending:false}).limit(5)
-      setProfiles(myProfs||[])
+  async function load(){
+    setLoading(true);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if(!authUser){ router.push('/login'); return; }
+    setUser(authUser);
+    setIsAdmin(isAdminEmail(authUser.email));
+    const { data, count } = await supabase.from('profiles').select('*', {count:'exact'}).eq('user_id', authUser.id).order('created_at',{ascending:false});
+    setProfiles(data||[]); setAllCount(count||0);
+    if(data && data.length>0){
+      const ids = data.map((p:any)=>p.id);
+      localStorage.setItem('heesara_my_ids', JSON.stringify(ids.slice(0,10)));
+      if(!localStorage.getItem('heesara_current_profile_id')){
+        localStorage.setItem('heesara_current_profile_id', data[0].id);
+      }
+      const {data: allRec} = await supabase.from('interests').select('*').in('receiver_profile_id', ids).order('created_at',{ascending:false});
+      const {data: allRecByUser} = await supabase.from('interests').select('*').eq('receiver_user_id', authUser.id).order('created_at',{ascending:false});
+      const {data: allSent} = await supabase.from('interests').select('*').in('sender_profile_id', ids).order('created_at',{ascending:false});
+      const {data: allSentByUser} = await supabase.from('interests').select('*').eq('sender_user_id', authUser.id).order('created_at',{ascending:false});
+      const mergedRec = [...(allRec||[]),...(allRecByUser||[])];
+      const mergedSent = [...(allSent||[]),...(allSentByUser||[])];
+      const uniqueRec = Array.from(new Map(mergedRec.map((i:any)=>[i.id,i])).values());
+      const uniqueSent = Array.from(new Map(mergedSent.map((i:any)=>[i.id,i])).values());
+      const needIds = [...new Set([...uniqueRec.map((r:any)=>r.sender_profile_id),...uniqueSent.map((s:any)=>s.receiver_profile_id)].filter(Boolean))];
+      let profileMap:any = {};
+      if(needIds.length>0){
+        const {data: needProfiles} = await supabase.from('profiles').select('*').in('id', needIds);
+        (needProfiles||[]).forEach((p:any)=> profileMap[p.id]=p);
+      }
+      const recWith = uniqueRec.map((r:any)=> ({...r, sender: profileMap[r.sender_profile_id], receiver: data.find((p:any)=>p.id===r.receiver_profile_id) || profileMap[r.receiver_profile_id]}));
+      const sentWith = uniqueSent.map((s:any)=> ({...s, sender: data.find((p:any)=>p.id===s.sender_profile_id) || profileMap[s.sender_profile_id], receiver: profileMap[s.receiver_profile_id]}));
+      setReceived(recWith);
+      setSent(sentWith);
     }
-
-    const { count } = await supabase.from('profiles').select('id', {count:'exact', head:true})
-    setAllProfilesCount(count||0)
-    setLoading(false)
+    setLoading(false);
   }
+  useEffect(()=>{ load(); },[]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    alert('Logout වුණා! දැන් වෙන email එකකින් login වෙන්න පුළුවන්')
-    window.location.href='/login'
-  }
+  // --- NEW: Deactivate / Reactivate instead of Delete ---
+  const handleDeactivate = async (p:any) => {
+    const ok = confirm(`Hide "${p.full_name}" from search?\n\nYour paid period will stay safe. You can Reactivate anytime.\n\nIf you want totally new profile, use Edit instead.`);
+    if(!ok) return;
+    const { error } = await supabase.from('profiles').update({ is_visible: false }).eq('id', p.id).eq('user_id', user.id);
+    if(error){ alert(error.message); return; }
+    load();
+  };
 
-  const handleDeleteProfile = async (id:string) => {
-    if(!confirm('Profile එක delete කරන්නද? Photos + interests ඔක්කොම delete වෙනවා!')) return
-    await supabase.from('profile_photos').delete().eq('profile_id', id)
-    await supabase.from('interests').delete().or(`from_profile.eq.${id},to_profile.eq.${id}`)
-    await supabase.from('expectations').delete().eq('profile_id', id)
-    await supabase.from('profiles').delete().eq('id', id)
-    alert('Deleted')
-    load()
-  }
+  const handleReactivate = async (p:any) => {
+    const { error } = await supabase.from('profiles').update({ is_visible: true }).eq('id', p.id).eq('user_id', user.id);
+    if(error){ alert(error.message); return; }
+    load();
+  };
 
-  if(loading) return <main className="p-8 text-center">Loading...</main>
+  const handleRenew = async (profile:any) => {
+    const price = getRenewalPrice(profile);
+    const { data: order, error } = await supabase.from('payments').insert({
+      user_id: user.id, amount: price, status: 'pending',
+      profile_id: profile.id, profile_data: { full_name: profile.full_name },
+      plan_type: profile.is_free? 'discounted_6m' : 'normal_6m'
+    }).select().single();
+    if(error){ alert('Order error: '+error.message); return; }
+    router.push(`/pay/${order.id}`);
+  };
+  const acceptInterest = async (id:string) => {
+    await supabase.from('interests').update({status:'accepted'}).eq('id', id);
+    load();
+  };
+  const rejectInterest = async (id:string) => {
+    await supabase.from('interests').update({status:'rejected'}).eq('id', id);
+    load();
+  };
+
+  // View correct pair, not active profile
+  const viewPair = (it:any) => {
+    const myProfileId = profiles.find((p:any)=>p.id===it.sender_profile_id)?.id
+    ? it.sender_profile_id
+      : profiles.find((p:any)=>p.id===it.receiver_profile_id)?.id
+    ? it.receiver_profile_id
+      : profiles[0]?.id;
+    const otherId = myProfileId === it.sender_profile_id? it.receiver_profile_id : it.sender_profile_id;
+    if(myProfileId){
+      localStorage.setItem('heesara_current_profile_id', myProfileId);
+    }
+    router.push(`/profile/${otherId}`);
+  };
+
+  if(loading) return <div className='p-8 text-center'>Loading...</div>;
+  const canCreate = isAdmin? true : profiles.length<2;
+  const pendingProfiles = profiles.filter((p:any)=>p.subscription_status==='pending_payment');
+  const receivedPending = received.filter((r:any)=>r.status==='sent');
+  const receivedAccepted = received.filter((r:any)=>r.status==='accepted');
 
   return (
-    <main className="min-h-screen bg-[#FFF8E7] p-4">
-      <div className="max-w-3xl mx-auto bg-white rounded-[24px] p-6 shadow">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-[#7B1F2A]">👤 My Account</h1>
-          <Link href="/" className="border px-4 py-2 rounded-xl text-sm">Home</Link>
-        </div>
+    <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen'>
+      <div className='flex justify-between mb-4'>
+        <button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button>
+        <Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link>
+      </div>
+      <h1 className='text-2xl font-bold mb-2'>My Profiles</h1>
+      <div className='bg-white border-2 p-4 rounded-xl mb-4'>
+        <div className='font-bold'>{user?.email} {isAdmin?'👑 Admin':''}</div>
+        <div className='text-sm'>My Profiles: {allCount}/{isAdmin?'∞':'2'} | Received: {receivedPending.length} (Total {received.length}) | Sent: {sent.length} | Accepted: {receivedAccepted.length}</div>
+      </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-          <p className="font-bold text-sm">Login Status:</p>
-          {user ? (
-            <>
-              <p className="text-sm mt-1">✅ Logged in as: <b>{user.email}</b></p>
-              <p className="text-xs text-gray-500">User ID: {user.id.slice(0,8)}... | Created: {new Date(user.created_at).toLocaleDateString()}</p>
-              <p className="text-xs mt-2">මේ email එකෙන් profiles {profiles.length}/{MAX_PROFILES_PER_USER} හදලා තියෙනවා (Limit to avoid scam)</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-red-600">❌ Not logged in (Test Mode - Anonymous)</p>
-              <p className="text-xs text-gray-500 mt-1">Test mode නිසා ඕනෑම කෙනෙක්ට profiles හදන්න පුළුවන්. Production එකේදී login අනිවාර්යයි!</p>
-            </>
-          )}
+      {receivedPending.length>0 && (
+        <div className='bg-green-50 border-2 border-green-500 p-4 rounded-2xl mb-4'>
+          <div className='font-bold text-green-800 text-xl'>💌 {receivedPending.length} New Interest Received!</div>
+          {receivedPending.map((it:any)=>(
+            <div key={it.id} className='mt-3 bg-white border-2 border-green-200 p-3 rounded-xl flex justify-between items-center'>
+              <div className='flex gap-3 items-center'>
+                <div className='w-12 h-12 rounded-full bg-gray-100 overflow-hidden'>{it.sender?.main_photo_url && <img src={it.sender.main_photo_url} className='w-full h-full object-cover'/>}</div>
+                <div><b>{it.sender?.full_name||'Someone'}</b> ({it.sender?.age}y) → {it.receiver?.full_name} <div className='text-xs text-gray-600'>{it.sender?.job} | {it.sender?.living_city}</div></div>
+              </div>
+              <div className='flex gap-2'>
+                <button onClick={()=>acceptInterest(it.id)} className='bg-green-600 text-white px-5 py-2 rounded-full font-bold'>Accept</button>
+                <button onClick={()=>rejectInterest(it.id)} className='bg-gray-200 px-4 py-2 rounded-full'>Reject</button>
+                <button onClick={()=>viewPair(it)} className='bg-blue-600 text-white px-4 py-2 rounded-full text-sm'>View Pair</button>
+              </div>
+            </div>
+          ))}
         </div>
+      )}
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {user ? (
-            <button onClick={handleLogout} className="bg-red-500 text-white p-3 rounded-xl text-sm font-bold">🚪 Logout (වෙන user කෙනෙක්ට මාරු වෙන්න)</button>
-          ) : (
-            <Link href="/login" className="bg-[#7B1F2A] text-white p-3 rounded-xl text-sm font-bold text-center">🔑 Login වෙන්න</Link>
-          )}
-          <Link href="/create-profile" className="border p-3 rounded-xl text-sm font-bold text-center">➕ New Profile {profiles.length>=MAX_PROFILES_PER_USER ? '(Limit!)' : ''}</Link>
+      {receivedAccepted.length>0 && (
+        <div className='bg-blue-50 border-2 border-blue-300 p-4 rounded-2xl mb-4'>
+          <div className='font-bold text-blue-700'>✅ {receivedAccepted.length} Accepted</div>
+          {receivedAccepted.map((it:any)=>(
+            <div key={it.id} className='mt-2 bg-white border p-2 rounded-xl flex justify-between text-sm'>
+              <div>{it.sender?.full_name} → {it.receiver?.full_name} - Accepted</div>
+              <button onClick={()=>viewPair(it)} className='text-blue-600 underline'>View Pair</button>
+            </div>
+          ))}
         </div>
+      )}
 
-        <div className="mt-6">
-          <h2 className="font-bold">📊 Stats</h2>
-          <p className="text-sm mt-1">මුළු profiles: {allProfilesCount} / 1000 Free | ඔබේ profiles: {profiles.length}</p>
-          <p className="text-xs text-gray-500">මුල් 1000ට Free | ඊට පස්සේ Paid. එක email එකකට profiles {MAX_PROFILES_PER_USER}යි (scam වලක්වන්න)</p>
+      {sent.length>0 && (
+        <div className='bg-yellow-50 border-2 border-yellow-200 p-4 rounded-2xl mb-4'>
+          <div className='font-bold'>📤 {sent.length} Sent</div>
+          {sent.map((it:any)=>(
+            <div key={it.id} className='mt-2 bg-white border p-2 rounded-xl flex justify-between text-sm'>
+              <div>{it.sender?.full_name} → {it.receiver?.full_name} - {it.status}</div>
+              <button onClick={()=>viewPair(it)} className='text-blue-600 underline'>View Pair</button>
+            </div>
+          ))}
         </div>
+      )}
 
-        <div className="mt-6">
-          <h2 className="font-bold">👤 ඔබේ Profiles ({profiles.length})</h2>
-          <div className="mt-2 space-y-2">
-            {profiles.map((p:any)=>(
-              <div key={p.id} className="p-3 bg-[#FFF8E7] rounded-xl border flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-sm">{p.full_name} ({p.gender==='male'?'පුරුෂ':'ස්ත්‍රී'}) - {p.district_en}</p>
-                  <p className="text-xs text-gray-600">{p.job_main} | {p.dob} | Free #{p.free_slot_number || '?'}</p>
-                  <p className="text-[10px] text-gray-400">ID: {p.id.slice(0,8)}...</p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Link href={`/profile/${p.id}`} className="text-xs border px-2 py-1 rounded bg-white text-center">View</Link>
-                  <Link href="/photos" className="text-xs border px-2 py-1 rounded bg-white text-center">Photos</Link>
-                  <button onClick={()=>handleDeleteProfile(p.id)} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Delete</button>
+      {pendingProfiles.length>0 && (
+        <div className='bg-red-50 border-2 border-red-400 p-4 rounded-2xl mb-4'>
+          <div className='font-bold text-red-700 text-lg'>🔒 {pendingProfiles.length} Pending Payment</div>
+          {pendingProfiles.map((p:any)=>(
+            <div key={p.id} className='mt-3 bg-white border p-3 rounded-xl flex justify-between'>
+              <div><b>{p.full_name}</b> - Rs.{getRenewalPrice(p)}</div>
+              <button onClick={()=>handleRenew(p)} className='bg-green-600 text-white px-5 py-2 rounded-full font-bold'>Pay Rs.{getRenewalPrice(p)}</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className='flex gap-3 mb-6'>
+        {canCreate? <Link href='/create-profile' className='bg-green-600 text-white px-5 py-3 rounded-full font-bold'>+ Create New ({profiles.length}/{isAdmin?'∞':'2'})</Link> : <button disabled className='bg-gray-300 px-5 py-3 rounded-full'>Max 2 reached</button>}
+        <Link href='/matches' className='bg-blue-600 text-white px-5 py-3 rounded-full'>Matches</Link>
+        <button onClick={async()=>{ await supabase.auth.signOut(); router.push('/login'); }} className='bg-gray-200 px-5 py-3 rounded-full'>Logout</button>
+      </div>
+
+      <div className='grid gap-4'>
+        {profiles.map((p:any)=>{
+          const info = getProfileExpiryInfo(p); const active = isProfileActive(p); const main=p.main_photo_url||p.photo_urls?.[0];
+          const isVisible = p.is_visible!== false; // null/true = visible
+          return (
+            <div key={p.id} className={`border-2 rounded-2xl p-4 bg-white shadow flex gap-4 ${!active?'border-red-300':''} ${!isVisible?'border-yellow-400 bg-yellow-50':''}`}>
+              <div className='w-24 h-24'>{main? <img src={main} className='w-full h-full object-cover rounded-xl border-2'/> : <div className='w-full h-full bg-gray-100 rounded-xl flex items-center justify-center'>P</div>}</div>
+              <div className='flex-1'>
+                <div className='flex justify-between'>
+                  <div>
+                    <div className='font-bold text-lg'>{p.full_name} - {p.age}y - {p.birth_district_si}
+                      <span className={`ml-2 text-xs px-2 py-1 rounded-full ${p.subscription_status==='pending_payment'?'bg-red-100 text-red-700': active?'bg-green-100 text-green-700':'bg-orange-100'}`}>{p.subscription_status}</span>
+                      {!isVisible && <span className='ml-2 text-xs px-2 py-1 rounded-full bg-yellow-200 text-yellow-800'>Hidden</span>}
+                    </div>
+                    <div className='text-sm'>Job: {p.job} | {p.height_cm}cm | {info?.message}</div>
+                  </div>
+                  <div className='flex flex-col gap-2 items-end'>
+                    <div className='flex gap-2'>
+                      <Link href={`/profile/${p.id}`} className='text-blue-600 underline text-sm border bg-white px-3 py-1 rounded-full'>View Own</Link>
+                      <Link href={`/create-profile?edit=${p.id}`} className='text-green-600 underline text-sm border bg-white px-3 py-1 rounded-full'>Edit</Link>
+                    </div>
+                    {!active && <button onClick={()=>handleRenew(p)} className='bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold'>Pay Rs.{getRenewalPrice(p)}</button>}
+                    {isVisible? (
+                      <button onClick={()=>handleDeactivate(p)} className='bg-yellow-50 text-yellow-700 border border-yellow-300 px-3 py-1 rounded-full text-xs'>Hide / Deactivate</button>
+                    ) : (
+                      <button onClick={()=>handleReactivate(p)} className='bg-green-50 text-green-700 border border-green-300 px-3 py-1 rounded-full text-xs font-bold'>Reactivate</button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
-            {profiles.length===0 && <p className="text-xs text-gray-500">Profiles නෑ - Create Profile කරන්න</p>}
-          </div>
-        </div>
-
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200 text-xs">
-          <p className="font-bold">💡 User මාරු වෙන්නේ කොහොමද?</p>
-          <p className="mt-1">1. Interest එකක් යැව්වා -> අනිත් userට පේනවද බලන්න ඕන නම්:</p>
-          <p>2. My Account -> Logout click කරන්න</p>
-          <p>3. Login page එකේ අනිත් email එක දාන්න (උදා: test2@gmail.com)</p>
-          <p>4. Magic link click කරලා login වෙන්න</p>
-          <p>5. Interests page එකේ Received වල පේනවා!</p>
-          <p className="mt-2 font-bold">🔒 Scam වලක්වන්නේ කොහොමද?</p>
-          <p>• එක email එකකට profiles {MAX_PROFILES_PER_USER}යි max</p>
-          <p>• මුල් 1000ට Free - ඊට පස්සේ Payment එකක් දාන්න ඕන</p>
-          <p>• OTP එකෙන් verify කරලා තියෙන email විතරයි</p>
-        </div>
-
-        <div className="mt-4 flex gap-2">
-          <Link href="/matches" className="flex-1 bg-[#7B1F2A] text-white p-3 rounded-xl text-center text-sm font-bold">💖 Matches</Link>
-          <Link href="/interests" className="flex-1 border p-3 rounded-xl text-center text-sm">💌 Interests</Link>
-        </div>
+            </div>
+          );
+        })}
       </div>
-    </main>
-  )
+    </div>
+  );
 }

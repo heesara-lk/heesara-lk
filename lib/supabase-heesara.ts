@@ -1,84 +1,50 @@
-import { createClient } from '@supabase/supabase-js'
-export const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-export const APP_NAME='හීසර.lk'
-export const FREE_SLOTS=1000
+// lib/supabase-heesara.ts - V10.3 FULL COMPATIBILITY FIX
+import { createClient } from '@supabase/supabase-js';
 
-// 25 දිස්ත්‍රික්ක
-export const DISTRICTS_SI=['අම්පාර','අනුරාධපුර','බදුල්ල','මඩකලපුව','කොළඹ','ගාල්ල','ගම්පහ','හම්බන්තොට','යාපනය','කළුතර','මහනුවර','කෑගල්ල','කිලිනොච්චිය','කුරුණෑගල','මන්නාරම','මාතලේ','මාතර','මොණරාගල','මුලතිව්','නුවරඑළිය','පොළොන්නරුව','පුත්තලම','රත්නපුර','ත්‍රිකුණාමලය','වව්නියාව']
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 38 ප්‍රධාන නගර
-export const CITIES_SI=['කොළඹ','දෙහිවල','මොරටුව','ගම්පහ','මීගමුව','කළුතර','පානදුර','මහනුවර','පේරාදෙනිය','මාතලේ','දඹුල්ල','නුවරඑළිය','හැටන්','ගාල්ල','මාතර','වැලිගම','හම්බන්තොට','තංගල්ල','කුරුණෑගල','කුලියාපිටිය','පුත්තලම','හලාවත','අනුරාධපුර','පොළොන්නරුව','රත්නපුර','ඇඹිලිපිටිය','බදුල්ල','බණ්ඩාරවෙල','මොණරාගල','අම්පාර','මඩකලපුව','ත්‍රිකුණාමලය','යාපනය','කිලිනොච්චිය','මුලතිව්','මන්නාරම','වව්නියාව','කෑගල්ල']
-
-// 2. රැකියා - වෙන වෙනම split
-export const JOBS=[
-  'රජයේ සේවක',
-  'ගුරු',
-  'විදුහල්පති',
-  'වෛද්‍ය',
-  'හෙද',
-  'ඉංජිනේරු',
-  'IT / මෘදුකාංග',
-  'බැංකු / මූල්‍ය',
-  'ව්‍යාපාරික',
-  'ස්වයං රැකියා',
-  'විදේශගත',
-  'ගොවිතැන්',
-  'හමුදා',
-  'පොලිස් / ආරක්ෂක',
-  'නීතීඥ',
-  'ගණකාධිකාරී',
-  'රූපලාවන්‍ය / මෝස්තර',
-  'වෙනත් (type කරන්න)'
-]
-
-// 3. කුලය - අනවශ්‍යයි එකතු කළා
-export const CASTES=[
-  'අනවශ්‍යයි / නොදනී',
-  'ගොවිගම',
-  'කරාව',
-  'සලාගම',
-  'දේව',
-  'බත්ගම',
-  'වහුම්පුර',
-  'නවන්දන්නා',
-  'රදා',
-  'හේන',
-  'වෙනත් (type කරන්න)'
-]
-
-// 5. ශරීර ලක්ෂණ
-export const BODY_TYPES=['කෙට්ටු','සාමාන්‍ය','මහත','ක්‍රීඩා ශරීර']
-export const SKIN_COLORS=['ඉතා සුදු','සුදු','තලෙළු','අඳුරු තලෙළු']
-
-// Email OTP - Phase 1 $0
-export async function sendEmailOtp(email:string){
-  return await supabase.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } })
+// ---- Test Mode Account Switching ----
+export function getCurrentProfileId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('heesara_current_profile_id');
 }
-export async function verifyEmailOtp(email:string, token:string){
-  return await supabase.auth.verifyOtp({ email, token, type:'email' })
+export function setCurrentProfileId(id: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('heesara_current_profile_id', id);
+  window.dispatchEvent(new Event('heesara_profile_changed'));
+}
+export function clearCurrentProfileId() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('heesara_current_profile_id');
+  window.dispatchEvent(new Event('heesara_profile_changed'));
+}
+export async function getMyProfile() {
+  const currentId = getCurrentProfileId();
+  if (currentId) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', currentId).single();
+    if (data) return data;
+  }
+  const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: true }).limit(1).single();
+  return data;
 }
 
-// Free slots check
-export async function checkFreeSlots(){
-  const { data } = await supabase.rpc('get_free_slots_count')
-  return { count: data||0, isFreeAvailable: (data||0) < FREE_SLOTS }
-}
+// ---- OLD CONSTANTS (needed for create-profile page) ----
+export const DISTRICTS_SI = ['කොළඹ','ගම්පහ','කළුතර','මහනුවර','මාතලේ','නුවරඑළිය','ගාල්ල','මාතර','හම්බන්තොට','යාපනය','මඩකලපුව','අම්පාර','ත්‍රිකුණාමලය','කුරුණෑගල','පුත්තලම','අනුරාධපුර','පොලොන්නරුව','බදුල්ල','මොනරාගල','රත්නපුර','කෑගල්ල'];
+export const DISTRICTS_EN = ['Colombo','Gampaha','Kalutara','Kandy','Matale','Nuwara Eliya','Galle','Matara','Hambantota','Jaffna','Batticaloa','Ampara','Trincomalee','Kurunegala','Puttalam','Anuradhapura','Polonnaruwa','Badulla','Monaragala','Ratnapura','Kegalle'];
+export const DISTRICTS = DISTRICTS_SI; // alias for old code
+export const CITIES_SI = ['කොළඹ','දෙහිවල','මහරගම','මහනුවර','ගම්පහ','කුරුණෑගල','ගාල්ල','මාතර','යාපනය','අනුරාධපුර','රත්නපුර','බදුල්ල','කෑගල්ල','කළුතර','නුවරඑළිය'];
+export const CITIES_EN = ['Colombo','Dehiwala','Maharagama','Kandy','Gampaha','Kurunegala','Galle','Matara','Jaffna','Anuradhapura','Ratnapura','Badulla','Kegalle','Kalutara','Nuwara Eliya'];
 
-// Photo compress + upload
-export async function compressAndUpload(file:File, profileId:string){
-  const blob = await new Promise<Blob>((resolve)=>{
-    const img=new Image()
-    img.onload=()=>{
-      const c=document.createElement('canvas')
-      const s=Math.min(1,800/img.width)
-      c.width=img.width*s; c.height=img.height*s
-      c.getContext('2d')!.drawImage(img,0,0,c.width,c.height)
-      c.toBlob(b=>resolve(b!),'image/webp',0.6)
-    }
-    img.src=URL.createObjectURL(file)
-  })
-  const name=`${profileId}/${Date.now()}.webp`
-  const { error } = await supabase.storage.from('heesara-photos').upload(name, blob, {contentType:'image/webp'})
-  if(error) throw error
-  return supabase.storage.from('heesara-photos').getPublicUrl(name).data.publicUrl
-}
+export const JOBS = ['ගුරු','විදුහල්පති','වෛද්‍ය','හෙද','ව්‍යාපාරික','ස්වයං රැකියා','හමුදා','පොලිස්/ආරක්ෂක','රජයේ සේවක','පෞද්ගලික සේවක','ගොවිතැන','වෙනත්'];
+export const JOBS_SPLIT = JOBS;
+export const JOBS_EN = ['Teacher','Principal','Doctor','Nurse','Business','Self-employed','Army','Police/Security','Government','Private','Farming','Other'];
+
+export const CASTES = ['අනවශ්‍යයි / නොදනී','ගොවිගම','කරාව','දුරාව','සලාගම','බත්ගම','වහුම්පුර','වෙනත්'];
+export const CASTES_EN = ['Unwanted/Unknown','Govigama','Karawa','Durawa','Salagama','Bathgama','Wahumpura','Other'];
+
+export const BODY_TYPES = ['කෙට්ටු','සාමාන්‍ය','මහත','ක්‍රීඩා ශරීර'];
+export const SKIN_COLORS = ['ඉතා සුදු','සුදු','තලෙළු','අඳුරු තලෙළු'];
+
+export const HEIGHTS = ['4.5ft','5.0ft','5.2ft','5.5ft','5.8ft','6.0ft','6.2ft'];

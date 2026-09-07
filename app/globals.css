@@ -2,11 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-:root{
-  --heesara-maroon:#7B1F2A;
-  --heesara-gold:#D4A017;
-  --heesara-cream:#FFF8E7;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;700&display=swap');
+
+body { 
+  font-family: 'Noto Sans Sinhala', sans-serif; 
+  background:#FFF8E7;
+  line-height: 1.7;
 }
-body{ background: var(--heesara-cream); }
-.card-hover{ transition: all 0.2s; }
-.card-hover:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px rgba(123,31,42,0.1); }
+
+* {
+  font-family: 'Noto Sans Sinhala', sans-serif !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
