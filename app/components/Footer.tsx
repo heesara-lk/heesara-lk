@@ -46,6 +46,7 @@ export default function Footer(){
             <Link href="/privacy" className="hover:text-white underline">Privacy</Link>
             <Link href="/terms" className="hover:text-white underline">Terms</Link>
             <Link href="/refund" className="hover:text-white underline">Refund</Link>
+            <Link href="/contact" className="hover:text-white underline">Contact</Link>
           </div>
         </div>
       </div>
