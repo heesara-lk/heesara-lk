@@ -3,12 +3,11 @@ import { supabase } from './supabase-heesara';
 
 export const PRICING = {
   NORMAL_6M: 1500,
-  DISCOUNTED_6M: 750, // 50% off for first 1000 after 6 months
-  FREE_LIMIT: 5,
+  DISCOUNTED_6M: 750,
+  FREE_LIMIT: 1000,
 };
 
 export async function checkFreeSlots(){
-  // count only is_free=true - accurate + safe
   const { count: total } = await supabase.from('profiles').select('*', {count:'exact', head:true});
   const { count: freeCount } = await supabase.from('profiles').select('*', {count:'exact', head:true}).eq('is_free', true);
   
@@ -18,23 +17,21 @@ export async function checkFreeSlots(){
   return { 
     total: total || 0, 
     freeCount: free,
-    count: total || 0, // backward compat
+    count: total || 0,
     remaining, 
     isFreeAvailable: free < PRICING.FREE_LIMIT 
   };
 }
 
-// === NEW: Active ද කියලා check කරන function ===
 export function isProfileActive(profile:any){
   if(!profile) return false;
   if(profile.subscription_status === 'pending_payment') return false;
   const expStr = profile.plan_expires_at || profile.free_until;
-  if(!expStr) return true; // no expiry = active (old profiles)
+  if(!expStr) return true;
   const exp = new Date(expStr);
   return exp.getTime() > new Date().getTime();
 }
 
-// === NEW: Contact බලන්න පුළුවන්ද? (Viewer ගේ profile එක check කරන්නේ) ===
 export function canViewContact(myProfile:any){
   if(!myProfile) return false;
   return isProfileActive(myProfile);
