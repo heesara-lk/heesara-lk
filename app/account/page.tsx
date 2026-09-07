@@ -43,7 +43,8 @@ export default function AccountPage(){
       const mergedSent = [...(allSent||[]),...(allSentByUser||[])];
       const uniqueRec = Array.from(new Map(mergedRec.map((i:any)=>[i.id,i])).values());
       const uniqueSent = Array.from(new Map(mergedSent.map((i:any)=>[i.id,i])).values());
-      const needIds = [...new Set([...uniqueRec.map((r:any)=>r.sender_profile_id),...uniqueSent.map((s:any)=>s.receiver_profile_id)].filter(Boolean))];
+      const allIds = [...uniqueRec.map((r:any)=>r.sender_profile_id), ...uniqueSent.map((s:any)=>s.receiver_profile_id)].filter(Boolean) as string[];
+const needIds = Array.from(new Set(allIds));
       let profileMap:any = {};
       if(needIds.length>0){
         const {data: needProfiles} = await supabase.from('profiles').select('*').in('id', needIds);

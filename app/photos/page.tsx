@@ -122,14 +122,14 @@ export default function PhotosPage(){
             {uploading ? 'Uploading & Compressing...' : '📤 Photos තෝරන්න (3 දක්වා)'}
             <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" disabled={uploading || photos.length>=3} />
           </label>
-          <p className="text-[11px] text-gray-500 mt-2 text-center">JPG/PNG -> auto WebP 60% quality, max 800px width. Fast for Sri Lanka data!</p>
+          <p className="text- text-gray-500 mt-2 text-center">JPG/PNG to auto WebP 60% quality, max 800px width. Fast for Sri Lanka data!</p>
         </div>
 
         {msg && <p className="mt-4 text-sm p-3 bg-yellow-50 rounded-xl border text-center">{msg}</p>}
 
         <div className="mt-6 flex gap-2">
-          <a href="/create-profile" className="flex-1 border p-3 rounded-xl text-center text-sm">⬅️ Edit Profile</a>
-          <a href="/" className="flex-1 bg-[#2D8A4E] text-white p-3 rounded-xl text-center text-sm font-bold">✅ Finish -> Home</a>
+          <a href="/create-profile" className="flex-1 border p-3 rounded-xl text-center text-sm">Edit Profile</a>
+          <a href="/" className="flex-1 bg-[#2D8A4E] text-white p-3 rounded-xl text-center text-sm font-bold">✅ Finish to Home</a>
         </div>
 
         <div className="mt-6 p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs">
