@@ -213,29 +213,7 @@ function CreateProfileForm(){
       if(photoFiles.length>0){
         setLog('Uploading photos...');
         const urls=await uploadPhotos(photoFiles,data.id);
-        if(urls.length>0)
-        {await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
-  // PATCH: keep profile_photos table in sync (optional)
-  for(const u of urls){await supabase.from('profile_photos').insert({ profile_id: data.id, url: u, is_primary: u===urls[0] }).catch(()=>{});
-  }
-}
-// PATCH: also keep expectations & free payments in sync (optional)
-await supabase.from('expectations').insert({
-  profile_id: data.id,
-  age_min: parseInt(form.exp_age_min),
-  age_max: parseInt(form.exp_age_max),
-  height_min: parseInt(form.exp_height_min),
-  height_max: parseInt(form.exp_height_max),
-  district_pref_en: form.exp_district
-}).catch(()=>{});
-await supabase.from('payments').insert({
-  profile_id: data.id,
-  user_id: user.id,
-  amount: 0,
-  status: 'completed',
-  plan_type: 'free_6m'
-}).catch(()=>{});
-       await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
+        if(urls.length>0)await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
       }
       try{
         const existing=JSON.parse(localStorage.getItem('heesara_my_ids')||'[]');
