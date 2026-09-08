@@ -210,24 +210,28 @@ function CreateProfileForm(){
         }, { onConflict: 'profile_id' });
       }
 
-            if(photoFiles.length>0){
+                  if(photoFiles.length>0){
         setLog('Uploading photos...');
         const urls=await uploadPhotos(photoFiles,data.id);
         if(urls.length>0){
           await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
-                    for(const u of urls){
+          try{ await supabase.from('profile_photos').delete().eq('profile_id', data.id); }catch{}
+          for(const u of urls){
             try{
               await supabase.from('profile_photos').insert({ profile_id: data.id, url: u, is_primary: u===urls[0] });
             }catch{}
           }
         }
       }
-      try{
-        await supabase.from('expectations').insert({
+            try{
+        await supabase.from('expectations').upsert({
           profile_id: data.id,
           age_min: parseInt(form.exp_age_min) || 22,
-          age_max: parseInt(form.exp_age_max) || 30
-        });
+          age_max: parseInt(form.exp_age_max) || 30,
+          height_min: parseInt(form.exp_height_min) || 150,
+          height_max: parseInt(form.exp_height_max) || 180,
+          district_pref_en: form.exp_district
+        }, { onConflict: 'profile_id' });
       }catch{}
       try{
         const existing=JSON.parse(localStorage.getItem('heesara_my_ids')||'[]');
