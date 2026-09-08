@@ -58,7 +58,8 @@ export default function Home(){
             <h1 className="mt-6 text-4xl md:text-6xl font-bold text-white leading-[0.9] tracking-tight">
               හීසරයෙන්<br/>
               <span className="text-[#D4A017]">හීසරයට</span><br/>
-              <span className="text-2xl md:text-3xl font-normal text-white/80">හරි කෙනා හමුවන තැන</span>
+              <span className="text-2xl md:text-3xl font-normal text-white/80 px-4 py-2">හදවතින් හදවතට</span>
+              <span className="text-2xl md:text-3xl font-normal text-[#D4A017] px-4 py-2">සිහින සැබෑ වෙන තැන</span>
             </h1>
             <div className="mt-4 flex items-start gap-3 bg-white/5 backdrop-blur border border-white/10 rounded-xl p-3">
               <img src="/logo.png" alt="arrow" className="h-8 w-auto brightness-0 invert opacity-80 mt-0.6" />
