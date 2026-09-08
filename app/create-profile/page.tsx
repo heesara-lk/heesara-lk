@@ -210,11 +210,25 @@ function CreateProfileForm(){
         }, { onConflict: 'profile_id' });
       }
 
-      if(photoFiles.length>0){
+            if(photoFiles.length>0){
         setLog('Uploading photos...');
         const urls=await uploadPhotos(photoFiles,data.id);
-        if(urls.length>0)await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
+        if(urls.length>0){
+          await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
+                    for(const u of urls){
+            try{
+              await supabase.from('profile_photos').insert({ profile_id: data.id, url: u, is_primary: u===urls[0] });
+            }catch{}
+          }
+        }
       }
+      try{
+        await supabase.from('expectations').insert({
+          profile_id: data.id,
+          age_min: parseInt(form.exp_age_min) || 22,
+          age_max: parseInt(form.exp_age_max) || 30
+        });
+      }catch{}
       try{
         const existing=JSON.parse(localStorage.getItem('heesara_my_ids')||'[]');
         const dbIds2=(checkData||[]).map((p:any)=>p.id);
