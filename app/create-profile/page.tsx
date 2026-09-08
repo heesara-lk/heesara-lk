@@ -214,8 +214,7 @@ function CreateProfileForm(){
         setLog('Uploading photos...');
         const urls=await uploadPhotos(photoFiles,data.id);
         if(urls.length>0)
-        if(urls.length>0){
-  await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
+        {await supabase.from('profiles').update({photo_urls:urls,main_photo_url:urls[0]}).eq('id',data.id);
   // PATCH: keep profile_photos table in sync (optional)
   for(const u of urls){
     await supabase.from('profile_photos').insert({ profile_id: data.id, url: u, is_primary: u===urls[0] }).catch(()=>{});
