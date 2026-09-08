@@ -9,12 +9,12 @@ export default function Footer(){
             <img src="/logo.png" alt="heesara" className="h-8 w-auto brightness-0 invert" />
             <div>
               <p className="font-bold text-xl">හීසර.lk</p>
-              <p className="text-xs text-[#D4A017]">HEESARA ආදර මල් හීය</p>
+              <p className="text-xs text-[#D4A017]">HEESARA</p>
             </div>
           </div>
           <p className="mt-4 text-sm text-white/70 leading-relaxed">
-            ඔබේ ගැටළුවට ස්ථිරම විසදුම.<br/>
-            ලංකාවේ විශ්වාසනීයම, Professional, Secure මංගල යෝජනා.
+            ලංකාවේ විශ්වාසනීයම මංගල යෝජනා web පිටුව.<br/>
+           Professional    Secure    Verified
           </p>
           <div className="mt-4 flex gap-2">
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ Verified</span>
@@ -39,7 +39,7 @@ export default function Footer(){
           {/* REMOVED: අර්ථය heading as requested */}
           <p className="text-sm text-white/70 leading-relaxed mt-2">
             ආදරයේ මල් හීසරය. හදවතට වදින ආදරය.<br/>
-            හරි කෙනා හමුවන තැන.
+            විශ්වාසයෙන් බැඳෙන තැන.
           </p>
           <p className="text-xs text-white/40 mt-6">© 2026 Heesara.lk • Made in Sri Lanka LK</p>
           <div className="mt-3 flex gap-3 text-xs text-white/50">

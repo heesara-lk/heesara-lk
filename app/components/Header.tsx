@@ -14,10 +14,10 @@ export default function Header(){
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 border-b border-[#D4A017]/20 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Heesara.lk - හීසරය" className="h-9 w-auto" />
+          <img src="/logo.png" alt="Heesara.lk" className="h-9 w-auto" />
           <div className="leading-none">
             <h1 className="font-bold text-[#7B1F2A] text-[22px] tracking-tight" style={{fontFamily:'Noto Serif Sinhala, serif'}}>හීසර.lk</h1>
-            <p className="text-[9px] text-[#D4A017] tracking-[0.2em] font-bold -mt-0.5">HEESARA • හීසරය</p>
+            <p className="text-[9px] text-[#D4A017] tracking-[0.2em] font-bold -mt-0.5">HEESARA</p>
           </div>
         </Link>
         <nav className="flex items-center gap-2">
