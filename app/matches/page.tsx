@@ -14,7 +14,7 @@ function isAdminEmail(email?:string|null){ if(!email) return false; const low=em
 
 // FIXED: #10 was duplicate Yoni, now Vruksha, #14 Nadi spelling fixed
 const PORONDAM_20=[
-  {id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වෛශ්ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්ර'},{id:9,name_si:'ස්ත්රී දීර්ඝ'},{id:10,name_si:'වෘක්ෂ'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නාඩි'},{id:15,name_si:'ග්රහ මෛත්රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},
+  {id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වශ්‍ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්‍ර'},{id:9,name_si:'ස්ත්‍රී දීර්ඝ'},{id:10,name_si:'වෘක්ෂ'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නාඩි'},{id:15,name_si:'ග්‍රහ මෛත්‍රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්‍ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},
 ];
 function scoreColor(s:number){ if(s>=80) return 'bg-green-100 border-green-200 text-green-800'; if(s>=50) return 'bg-yellow-100 border-yellow-200 text-yellow-800'; if(s>=20) return 'bg-orange-100 border-orange-200 text-orange-800'; return 'bg-red-100 border-red-200 text-red-800'; }
 

@@ -41,7 +41,6 @@ export default function Home(){
   return (
     <main className="min-h-screen bg-[#FFF8E7]">
       <Header />
-      {/* AUTH BANNER */}
       {!loadingUser &&!user && (
         <div className="bg-yellow-100 border-b border-yellow-300 text-center py-2 text-sm font-bold">
           🔐 Login වෙලා profile එක හදන්න → <Link href="/login" className="underline text-blue-700">Login / Signup</Link>
@@ -50,39 +49,33 @@ export default function Home(){
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#7B1F2A] via-[#7B1F2A] to-[#2D2D2D]" />
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_30%,#D4A017_0%,transparent_50%),radial-gradient(circle_at_80%_70%,#D4A017_0%,transparent_40%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1.5 rounded-full text-xs text-white border border-white/20">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> {count}/1000 Free Joined • {isAdmin? `👑 Admin ${myEmail} sees all` : 'Public'} • Live
+        {/* Bottom align fix: items-stretch + h-full */}
+        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-16 grid md:grid-cols-2 gap-10 items-stretch">
+          {/* LEFT - flex column to push title to bottom */}
+          <div className="flex flex-col h-full">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1.5 rounded-full text-xs text-white border border-white/20">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> {count}/1000 Free Joined • {isAdmin? `👑 Admin ${myEmail} sees all` : 'Public'} • Live
+              </div>
+              {/* SMALLER IMAGE - was 300px, now 200px to match right height */}
+              <div className="mt-4 flex justify-center md:justify-start">
+                <img src="/heesara_couple_line.png" alt="Heesara couple" className="w-[300px] md:w-[400px] h-auto opacity-80" />
+              </div>
             </div>
-            <h1 className="mt-6 text-4xl md:text-6xl font-bold text-white leading-[0.9] tracking-tight">
+            {/* TITLE pushed to bottom to align with right stats */}
+            <div className="mt-auto pt-100">
+               <h1 className="mt-1 text-4xl md:text-6xl font-bold text-white leading-[.85] tracking-tight">
               හීසරයෙන්<br/>
-              <span className="text-[#D4A017]">හීසරයට</span><br/>
-              <span className="text-2xl md:text-3xl font-normal text-white/80 px-4 py-2">හදවතින් හදවතට</span>
-              <span className="text-2xl md:text-3xl font-normal text-[#D4A017] px-4 py-2">සිහින සැබෑ වෙන තැන</span>
+              <span className="text-[#D4A017] mt-6">හීසරයට</span><br/>
+              <span className="text-2xl md:text-3xl font-normal text-white/80 px-1 py-3 block mt-2">හදවතින් හදවතට</span>
+              <span className="text-2xl md:text-3xl font-normal text-[#D4A017] px-1 py-1 block">සිහින සැබෑ වෙන තැන</span>
             </h1>
-            <div className="mt-4 flex items-start gap-3 bg-white/5 backdrop-blur border border-white/10 rounded-xl p-3">
-              <img src="/logo.png" alt="arrow" className="h-8 w-auto brightness-0 invert opacity-80 mt-0.6" />
-              <p className="text-xs text-white/70 leading-relaxed px-1 py-1"> Professional, Secure, Verified.</p>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href={user? "/create-profile" : "/login"} className="px-7 py-3.5 bg-[#D4A017] text-[#7B1F2A] rounded-full font-bold shadow-xl hover:shadow-2xl hover:scale-[1.02] transition flex items-center gap-2">
-                👤 {user? "Profile හදන්න" : "Login වෙලා Profile හදන්න"} <span className="text-xs bg-[#7B1F2A] text-white px-2 py-0.5 rounded-full">FREE</span>
-              </Link>
-              <Link href={user? "/matches" : "/login"} className="px-7 py-3.5 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full font-bold hover:bg-white/20 flex items-center gap-2">🏹 Matches බලන්න</Link>
-              {!user &&!loadingUser && (
-                <Link href="/login" className="px-7 py-3.5 bg-white text-[#7B1F2A] rounded-full font-bold">🔐 Login</Link>
-              )}
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2"><p className="text-white font-bold">{count}</p><p className="text-xs text-white/60">{isAdmin?'All':'Public'} Profiles</p></div>
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2"><p className="text-white font-bold">{1000-count}</p><p className="text-xs text-white/60">Free Left</p></div>
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2"><p className="text-[#D4A017] font-bold">20</p><p className="text-xs text-white/60">Porondam</p></div>
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute -top-10 -right-10 w-72 h-72 bg-[#D4A017]/20 rounded-full blur-3xl" />
+          {/* RIGHT - flex column with space-between to align bottoms */}
+          <div className="relative flex flex-col h-full justify-between gap-5">
+            <div className="absolute -top-10 -right-10 w-72 h-72 bg-[#D4A017]/20 rounded-full blur-3xl pointer-events-none" />
             <div className="relative bg-white/10 backdrop-blur-2xl rounded-3xl p-2 shadow-2xl border border-white/20">
               <div className="bg-white rounded-2xl p-5 shadow-xl">
                 <div className="flex justify-between items-center">
@@ -95,7 +88,7 @@ export default function Home(){
                     {name:'අමිලා, 26', job:'ගුරු', score:88, dist:'Gampaha', body:'කෙට්ටු', por:'16/20'},
                     {name:'චාමර, 30', job:'වෛද්‍ය', score:85, dist:'Kandy', body:'ක්‍රීඩා', por:'15/20'},
                   ].map((m,i)=>(
-                    <div key={i} className="flex justify-between items-center p-3 rounded-xl border hover:shadow-sm transition" style={{background: i===0? 'linear-gradient(135deg,#FFF8E7,#fff)' : '#f9f9f9'}}>
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl border" style={{background: i===0? 'linear-gradient(135deg,#FFF8E7,#fff)' : '#f9f9f9'}}>
                       <div className="flex gap-2.5 items-center">
                         <div className="w-10 h-10 rounded-full bg-[#7B1F2A]/10 flex items-center justify-center text-[#7B1F2A] font-bold">{m.name[0]}</div>
                         <div><p className="font-bold text-sm">{m.name}</p><p className="text-xs text-gray-500">{m.job} • {m.dist} • {m.body} • {m.por} පොරොන්දම්</p></div>
@@ -105,6 +98,25 @@ export default function Home(){
                   ))}
                 </div>
                 <Link href={user? "/matches" : "/login"} className="mt-4 block text-center w-full bg-[#7B1F2A] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#5a1620]">🏹 Top 10 Matches බලන්න →</Link>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-5 mt-auto">
+              <div className="flex items-center gap-3 bg-white/5 backdrop-blur border border-white/10 rounded-xl px-4 py-2.5">
+                <span className="text-lg">🤍</span>
+                <p className="text-xs text-white/70">Professional, Secure, Verified.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Link href={user? "/create-profile" : "/login"} className="px-6 py-3 bg-[#D4A017] text-[#7B1F2A] rounded-full font-bold shadow-xl flex items-center gap-2 text-sm">
+                  👤 {user? "Profile හදන්න" : "Sign Up වෙලා Profile හදන්න"} <span className="text- bg-[#7B1F2A] text-white px-2 py-0.5 rounded-full">FREE</span>
+                </Link></div>
+               <div className="flex flex-wrap gap-4">             
+                <Link href={user? "/matches" : "/login"} className="px-7 py-3.5 bg-white text-[#7B1F2A] rounded-full font-bold shadow-xl flex items-center gap-2 text-sm">{user? "🏹 Matches බලන්න" : "🔐 Login"}</Link>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2.5"><p className="text-white font-bold">{count}</p><p className="text- text-white/60">All Profiles</p></div>
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2.5"><p className="text-white font-bold">{1000-count}</p><p className="text- text-white/60">Free Left</p></div>
+                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl py-2.5"><p className="text-[#D4A017] font-bold">20</p><p className="text- text-white/60">Porondam</p></div>
               </div>
             </div>
           </div>
@@ -118,7 +130,7 @@ export default function Home(){
           {icon:'🔮', title:'පොරොන්දම් 20', desc:'20 පොරොන්දම් ✅❌ එක්ක detail'},
           {icon:'🛡', title:'Professional & Secure', desc:'1 Account 2 Profiles, Privacy switches'},
         ].map((f,i)=>(
-          <div key={i} className="bg-white rounded-2xl p-5 border shadow-sm hover:shadow-lg hover:-translate-y-1 transition">
+          <div key={i} className="bg-white rounded-2xl p-5 border shadow-sm">
             <div className="w-10 h-10 rounded-full bg-[#FFF8E7] flex items-center justify-center text-lg">{f.icon}</div>
             <p className="font-bold mt-3 text-[#7B1F2A] text-sm">{f.title}</p>
             <p className="text-xs mt-1.5 text-gray-600 leading-relaxed">{f.desc}</p>
@@ -128,10 +140,10 @@ export default function Home(){
 
       <section className="max-w-7xl mx-auto px-4 pb-2">
         <div className="bg-white rounded-2xl p-5 border shadow-sm grid md:grid-cols-4 gap-3">
-          <Link href={user? "/create-profile" : "/login"} className="p-4 bg-[#FFF8E7] rounded-xl border hover:shadow text-center"><div className="text-xl">👤</div><p className="font-bold text-sm mt-1">{user? "Create Profile" : "Login to Create"}</p><p className="text-xs text-gray-500">{myProfiles}/2 limit {isAdmin?'👑':''}</p></Link>
-          <Link href="/photos" className="p-4 bg-green-50 rounded-xl border hover:shadow text-center"><div className="text-xl">📸</div><p className="font-bold text-sm mt-1">Photos</p><p className="text-xs text-gray-500">3 WebP compress</p></Link>
-          <Link href={user? "/matches" : "/login"} className="p-4 bg-gradient-to-br from-[#7B1F2A] to-[#5a1620] text-white rounded-xl shadow hover:shadow-lg text-center"><div className="text-xl">🏹</div><p className="font-bold text-sm mt-1">Top Matches</p><p className="text-xs text-white/70">Auto 100න් score</p></Link>
-          <Link href={user? "/account" : "/login"} className="p-4 bg-blue-50 rounded-xl border hover:shadow text-center"><div className="text-xl">👤</div><p className="font-bold text-sm mt-1">{user? "My Account" : "Login"}</p><p className="text-xs text-gray-500">{user? user.email.split('@')[0] : 'Login / Signup'}</p></Link>
+          <Link href={user? "/create-profile" : "/login"} className="p-4 bg-[#FFF8E7] rounded-xl border text-center"><div className="text-xl">👤</div><p className="font-bold text-sm mt-1">{user? "Create Profile" : "Login to Create"}</p><p className="text-xs text-gray-500">{myProfiles}/2 limit {isAdmin?'👑':''}</p></Link>
+          <Link href="/photos" className="p-4 bg-green-50 rounded-xl border text-center"><div className="text-xl">📸</div><p className="font-bold text-sm mt-1">Photos</p><p className="text-xs text-gray-500">3 WebP compress</p></Link>
+          <Link href={user? "/matches" : "/login"} className="p-4 bg-gradient-to-br from-[#7B1F2A] to-[#5a1620] text-white rounded-xl text-center"><div className="text-xl">🏹</div><p className="font-bold text-sm mt-1">Top Matches</p><p className="text-xs text-white/70">Auto 100න් score</p></Link>
+          <Link href={user? "/account" : "/login"} className="p-4 bg-blue-50 rounded-xl border text-center"><div className="text-xl">👤</div><p className="font-bold text-sm mt-1">{user? "My Account" : "Login"}</p><p className="text-xs text-gray-500">{user? user.email.split('@')[0] : 'Login / Signup'}</p></Link>
         </div>
       </section>
 

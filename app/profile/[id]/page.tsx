@@ -19,7 +19,7 @@ const PORONDAM_20=[
   {id:3,name_si:'යෝනි',name_en:'Yoni',desc:'Animal'},
   {id:4,name_si:'රාශි',name_en:'Rashi',desc:'Zodiac'},
   {id:5,name_si:'රාශි අධිපති',name_en:'Rashi Adhipathi',desc:'Lord'},
-  {id:6,name_si:'වෛශ්‍ය',name_en:'Vashya',desc:'Attraction'},
+  {id:6,name_si:'වශ්‍ය',name_en:'Vashya',desc:'Attraction'},
   {id:7,name_si:'දින',name_en:'Dina',desc:'Day'},
   {id:8,name_si:'මහේන්ද්‍ර',name_en:'Mahendra',desc:'Longevity'},
   {id:9,name_si:'ස්ත්‍රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
@@ -43,7 +43,7 @@ function scoreColor(s:number){
   return 'bg-red-100 border-red-200 text-red-800';
 }
 function getPorondamScore(a:any,b:any){
-  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්ය නැත'})), total:20, percent:100, note:'අවශ්ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
+  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්‍ය නැත'})), total:20, percent:100, note:'අවශ්‍ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   if(!a.birth_date||!b.birth_date) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:0,max:1,match:false,details:'දත්ත අඩුයි'})), total:0, percent:0, note:'දත්ත අඩුයි', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   const real = calculateRealPorondam(a,b);
   const list = real.details.map((d:any)=>({...d, score:d.obtained, name_si:d.name_si, name_en:d.name_en}));
@@ -346,7 +346,7 @@ export default function Page(){
     <div className='font-bold'>🔭 Real (Lahiri Ayanamsa) - District lat/long used</div>
     <div>ඔබ: {displayPorondam.debug.nakA} | ලග්නය: {displayPorondam.lagnaA?.nameSi} {displayPorondam.lagnaA?.deg}°</div>
     <div>අනෙකා: {displayPorondam.debug.nakB} | ලග්නය: {displayPorondam.lagnaB?.nameSi} {displayPorondam.lagnaB?.deg}°</div>
-    <div className='text-xs opacity-70'>ලබා දී ඇති උපන් වේලාව අනුව ගණනය කර ඇත. (අනෙකාගේ උපන් වේලාව ආරක්ෂක හේතුන් මත නොපෙන්වයි. දැන ගැනීමට පහත ඇති දුරකථන අංක ඔස්සේ කේන්ද්‍ර හිමිකරු සම්බන්ධ කරගන්න.).</div>
+    <div className='text-xs opacity-70'>ලබා දී ඇති උපන් වේලාව අනුව ගණනය කර ඇත. (අනෙකාගේ උපන් වේලාව දැන ගැනීමට පහත ඇති දුරකථන අංක ඔස්සේ කේන්ද්‍ර හිමිකරු සම්බන්ධ කරගන්න.).</div>
     {displayPorondam.isRajjuFail && <div className='bg-red-100 border p-2 rounded text-red-800 font-bold mt-2'>⚠ රජ්ජු දෝෂය - Critical</div>}
   </div>
 )}
