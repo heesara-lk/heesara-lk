@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-heesara';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { calculateRealPorondam } from '@/lib/porondam-real';
 import { isProfileActive, getProfileExpiryInfo, getRenewalPrice } from '@/lib/subscription';
 
 const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com'];
@@ -10,6 +11,7 @@ function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').repl
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
 function isAdminEmail(email?:string|null){ if(!email) return false; const low=email.toLowerCase(); const norm=normalizeEmail(email); return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm); }
+
 
 const PORONDAM_20=[
   {id:1,name_si:'නැකත',name_en:'Nakatha',desc:'Stars'},
@@ -21,7 +23,7 @@ const PORONDAM_20=[
   {id:7,name_si:'දින',name_en:'Dina',desc:'Day'},
   {id:8,name_si:'මහේන්ද්‍ර',name_en:'Mahendra',desc:'Longevity'},
   {id:9,name_si:'ස්ත්‍රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
-  {id:10,name_si:'යෝනි',name_en:'Yoni Match',desc:'Physical'},
+  {id:10,name_si:'වෘක්ෂ',name_en:'Vruksha',desc:'Tree'},
   {id:11,name_si:'රජ්ජු',name_en:'Rajju',desc:'Bond'},
   {id:12,name_si:'වේධ',name_en:'Vedha',desc:'Obstruction'},
   {id:13,name_si:'වර්ණ',name_en:'Varna',desc:'Caste'},
@@ -41,14 +43,11 @@ function scoreColor(s:number){
   return 'bg-red-100 border-red-200 text-red-800';
 }
 function getPorondamScore(a:any,b:any){
-  const viewerNeeds = a?.horoscope_required===true;
-  if(!viewerNeeds) return { list: PORONDAM_20.map(p=>({...p, score:1, match:true, details:'පොරොන්දම් අවශ්‍ය නැත 100%'})), total:20, percent:100, note:'පොරොන්දම් අවශ්‍ය නැත' };
-  if(!a.birth_date ||!b.birth_date ||!a.birth_district_si ||!b.birth_district_si) return { list: PORONDAM_20.map(p=>({...p, score:0, match:false, details:'දත්ත අඩුයි 0%'})), total:0, percent:0, note:'උපන් දිනය/දිස්ත්‍රික්කය අඩුයි' };
-  const str=(a.birth_date+b.birth_date+a.birth_district_si+b.birth_district_si).toString();
-  let hash=0; for(let i=0;i<str.length;i++) hash=(hash*31+str.charCodeAt(i))%1000;
-  const list=PORONDAM_20.map((por,i)=>{ const match=((hash+i*7)%3)!==0; return {...por, score:match?1:0, match, details: match? 'ගැලපේ' : 'නොගැලපේ'}; });
-  const total=list.filter(l=>l.match).length;
-  return { list, total, percent:Math.round((total/20)*100), note:'Calculated using software. For more details, contact your Astrologer.' };
+  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්ය නැත'})), total:20, percent:100, note:'අවශ්ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
+  if(!a.birth_date||!b.birth_date) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:0,max:1,match:false,details:'දත්ත අඩුයි'})), total:0, percent:0, note:'දත්ත අඩුයි', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
+  const real = calculateRealPorondam(a,b);
+  const list = real.details.map((d:any)=>({...d, score:d.obtained, name_si:d.name_si, name_en:d.name_en}));
+  return { list, total:real.total, percent:Math.round(real.total/20*100), note: `Real: ${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`, debug:real.debug, lagnaA:real.lagnaA, lagnaB:real.lagnaB, isRajjuFail:real.isRajjuFail };
 }
 
 // --- MUTUAL LOGIC FOR AGE/HEIGHT (range) + LIVING/RELIGION/CASTE/JOB (exact) ---
@@ -317,7 +316,7 @@ export default function Page(){
           <div className='bg-gray-50 border p-3 rounded-xl'>
             <div className='font-bold mb-1'>Personal Details</div>
             <div>Living: {profile.living_city||profile.current_city} - {profile.living_district_si}</div>
-            <div>Birth: {profile.birth_date} {profile.birth_district_si} {profile.birth_time||''}</div>
+            <div>Birth: {profile.birth_date} {profile.birth_district_si} Birth Time - Secured.</div>
             <div>Height: {profile.height_cm}cm | Education: {profile.education||profile.education_level||'-'}</div>
             <div>Job: {profile.job} | Religion: {profile.religion||'-'} | Caste: {profile.caste} | Marital: {profile.marital_status||'-'}</div>
           </div>
@@ -341,16 +340,29 @@ export default function Page(){
           </div>
         </div>
         <div className='mt-6 border-t pt-4'>
-          <h2 className='font-bold text-lg mb-2'>පොරොන්දම් 20 - උපන් දිනය/වේලාව/ස්ථානය අනුව ගණනය</h2>
+          <h2 className='font-bold text-lg mb-2'>පොරොන්දම් 20 (සැබෑ චන්ද්‍ර නැකැත් සහ ලග්න)</h2>
+{displayPorondam.debug && (
+  <div className='bg-indigo-50 border-2 border-indigo-300 p-3 rounded-xl mb-3 text-sm'>
+    <div className='font-bold'>🔭 Real (Lahiri Ayanamsa) - District lat/long used</div>
+    <div>ඔබ: {displayPorondam.debug.nakA} | ලග්නය: {displayPorondam.lagnaA?.nameSi} {displayPorondam.lagnaA?.deg}°</div>
+    <div>අනෙකා: {displayPorondam.debug.nakB} | ලග්නය: {displayPorondam.lagnaB?.nameSi} {displayPorondam.lagnaB?.deg}°</div>
+    <div className='text-xs opacity-70'>ලබා දී ඇති උපන් වේලාව අනුව ගණනය කර ඇත. (අනෙකාගේ උපන් වේලාව ආරක්ෂක හේතුන් මත නොපෙන්වයි. දැන ගැනීමට පහත ඇති දුරකථන අංක ඔස්සේ කේන්ද්‍ර හිමිකරු සම්බන්ධ කරගන්න.).</div>
+    {displayPorondam.isRajjuFail && <div className='bg-red-100 border p-2 rounded text-red-800 font-bold mt-2'>⚠ රජ්ජු දෝෂය - Critical</div>}
+  </div>
+)}
           <div className='bg-blue-50 border-2 border-blue-400 p-3 rounded-xl mb-3'><div className='font-bold'>Total: {displayPorondam.total}/20 ({displayPorondam.percent}%) - {displayPorondam.note}</div></div>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-            {displayPorondam.list.map((p:any)=>(
-              <div key={p.id} className={'border-2 p-3 rounded-lg text-sm flex justify-between ' + (p.match?'bg-green-50':'bg-red-50')}>
-                <div><span className='font-bold'>{p.id}. {p.name_si}</span> <span className='text-xs opacity-60 ml-1'>{p.name_en}</span></div>
-                <div className={p.match?'text-green-600 font-bold':'text-red-600 font-bold'}>{p.details}</div>
-              </div>
-            ))}
-          </div>
+  {displayPorondam.list.map((p:any)=>(
+    <div key={p.id} className={'border-2 p-3 rounded-lg text-xs ' + (p.match?'bg-green-50':'bg-red-50')}>
+      <div className='font-bold flex justify-between'>
+        <span>{p.id}. {p.name_si} <span className='opacity-60'>{p.name_en}</span></span>
+        <span>{p.obtained}/{p.max}</span>
+      </div>
+      <div className='mt-1'>ඇය: {p.girlValue} | ඔහු: {p.boyValue}</div>
+      <div className={p.match?'text-green-600 font-bold':'text-red-600 font-bold'}>{p.descSi || p.desc} - {p.details}</div>
+    </div>
+  ))}
+</div>
         </div>
         <div className='mt-6 border-t pt-4'>
           <h2 className='font-bold text-lg'>Contact Details</h2>

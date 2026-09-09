@@ -4,25 +4,59 @@ import { supabase } from '@/lib/supabase-heesara';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isProfileActive } from '@/lib/subscription';
+import { calculateRealPorondam } from '@/lib/porondam-real';
 
-const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com','manjula.upashantha@heesara.lk'];
+const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjula.upashantha@gmail.com','manjula.upashantha@heesara.lk'];
 function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
 function isAdminEmail(email?:string|null){ if(!email) return false; const low=email.toLowerCase(); const norm=normalizeEmail(email); return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm); }
 
-const PORONDAM_20=[{id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වෛශ්‍ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්‍ර'},{id:9,name_si:'ස්ත්‍රී දීර්ඝ'},{id:10,name_si:'යෝනි'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නදී'},{id:15,name_si:'ග්‍රහ මෛත්‍රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්‍ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},];
+// FIXED: #10 was duplicate Yoni, now Vruksha, #14 Nadi spelling fixed
+const PORONDAM_20=[
+  {id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වෛශ්ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්ර'},{id:9,name_si:'ස්ත්රී දීර්ඝ'},{id:10,name_si:'වෘක්ෂ'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නාඩි'},{id:15,name_si:'ග්රහ මෛත්රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},
+];
 function scoreColor(s:number){ if(s>=80) return 'bg-green-100 border-green-200 text-green-800'; if(s>=50) return 'bg-yellow-100 border-yellow-200 text-yellow-800'; if(s>=20) return 'bg-orange-100 border-orange-200 text-orange-800'; return 'bg-red-100 border-red-200 text-red-800'; }
+
+// PATCHED - REAL PORONDAM, keeps same return shape as before
 function getPorondamScore(a:any,b:any){
   const viewerNeeds = a?.horoscope_required===true;
   if(!viewerNeeds) return { total:20, percent:100, list:[], note:'Not required 100%' };
   if(!a.birth_date ||!b.birth_date ||!a.birth_district_si ||!b.birth_district_si) return { total:0, percent:0, list:[], note:'No data 0%' };
-  const str=(a.birth_date+b.birth_date+a.birth_district_si+b.birth_district_si).toString(); let hash=0; for(let i=0;i<str.length;i++) hash=(hash*31+str.charCodeAt(i))%1000;
-  const list=PORONDAM_20.map((por,i)=>{ const match=((hash+i*7)%3)!==0; return {...por, match, score:match?1:0}; }); const total=list.filter(l=>l.match).length;
-  return { list, total, percent:Math.round((total/20)*100), note:'Calculated' };
+  try{
+    const real = calculateRealPorondam(a,b);
+    const list = real.details.map((d:any)=>({
+      id:d.id,
+      name_si:d.name_si,
+      name_en:d.name_en,
+      name_si_original: PORONDAM_20.find(p=>p.id===d.id)?.name_si,
+      match:d.match,
+      score:d.obtained,
+      girlValue:d.girlValue,
+      boyValue:d.boyValue,
+      obtained:d.obtained,
+      max:d.max,
+      descSi:d.descSi
+    }));
+    return {
+      list,
+      total:real.total,
+      percent:Math.round((real.total/20)*100),
+      note: `Real: ${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`,
+      lagnaA:real.lagnaA,
+      lagnaB:real.lagnaB,
+      debug:real.debug,
+      isRajjuFail:real.isRajjuFail
+    };
+  }catch(e){
+    // fallback to old hash if real calc fails - never crash matches page
+    const str=(a.birth_date+b.birth_date+a.birth_district_si+b.birth_district_si).toString(); let hash=0; for(let i=0;i<str.length;i++) hash=(hash*31+str.charCodeAt(i))%1000;
+    const list=PORONDAM_20.map((por,i)=>{ const match=((hash+i*7)%3)!==0; return {...por, match, score:match?1:0}; }); const total=list.filter(l=>l.match).length;
+    return { list, total, percent:Math.round((total/20)*100), note:'Calculated (fallback)' };
+  }
 }
 
-// --- MUTUAL LOGIC FOR ALL FIELDS ---
+// --- MUTUAL LOGIC FOR ALL FIELDS --- (UNCHANGED)
 function inRange(val:any, min:any, max:any){
   if(val==null) return false;
   if(min==null || min==='Any' || min==='' ) min = -9999;
@@ -55,29 +89,20 @@ function matchesExact(exp:any, real:any){
 function calculateMatchingBreakdown(viewer:any, candidate:any){
   const ageScore = mutualScoreRange(viewer.age, candidate.age, viewer.expectation_age_min, viewer.expectation_age_max, candidate.expectation_age_min, candidate.expectation_age_max);
   const heightScore = mutualScoreRange(viewer.height_cm||viewer.height, candidate.height_cm||candidate.height, viewer.expectation_height_min, viewer.expectation_height_max, candidate.expectation_height_min, candidate.expectation_height_max);
-
-  // Living mutual: a=viewer expectation, x=viewer living, b=candidate expectation, y=candidate living
   const expDistViewer = viewer.expectation_district||'Any';
   const expDistCand = candidate.expectation_district||'Any';
   const condDist1 = isAny(expDistViewer) || matchesDistrict(expDistViewer, candidate);
   const condDist2 = isAny(expDistCand) || matchesDistrict(expDistCand, viewer);
   const districtScore = condDist1 && condDist2? 100 : condDist1 &&!condDist2? 70 :!condDist1 && condDist2? 40 : 10;
-
-  // Job mutual
   const condJob1 = isAny(viewer.expectation_job) || matchesExact(viewer.expectation_job, candidate.job);
   const condJob2 = isAny(candidate.expectation_job) || matchesExact(candidate.expectation_job, viewer.job);
   const jobScore = condJob1 && condJob2? 100 : condJob1 &&!condJob2? 70 :!condJob1 && condJob2? 40 : 10;
-
-  // Caste mutual
   const condCaste1 = isAny(viewer.expectation_caste) || matchesExact(viewer.expectation_caste, candidate.caste);
   const condCaste2 = isAny(candidate.expectation_caste) || matchesExact(candidate.expectation_caste, viewer.caste);
   const casteScore = condCaste1 && condCaste2? 100 : condCaste1 &&!condCaste2? 70 :!condCaste1 && condCaste2? 40 : 10;
-
-  // Religion mutual
   const condRel1 = isAny(viewer.expectation_religion) || matchesExact(viewer.expectation_religion, candidate.religion);
   const condRel2 = isAny(candidate.expectation_religion) || matchesExact(candidate.expectation_religion, viewer.religion);
   const religionScore = condRel1 && condRel2? 100 : condRel1 &&!condRel2? 70 :!condRel1 && condRel2? 40 : 10;
-
   const porData=getPorondamScore(viewer,candidate);
   return {
     ageScore, heightScore, districtScore, religionScore, jobScore, casteScore,
