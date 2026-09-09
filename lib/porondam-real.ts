@@ -1,11 +1,11 @@
 // V17 FINAL - Varna fixed + Sinhala fixed (UTF-8)
 const NAK=['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishta','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'];
-const NAK_SI=['අස්විද','බෙරණ','කැති','රෙහෙණ','මුවසිරස','ආදර','පුනාවස','පුෂ','අස්ලිස','මක','පුවපල්','උත්‍රපල්','හත','සිත','සා','විසා','අනුර','දෙට','මුල','පුවසල','උත්‍රසල','සුවණ','දෙනට','සියාවස','පුවබුප','උත්‍රබුප','රේවතී'];
+const NAK_SI=['අස්විද','බෙරණ','කැති','රෙහෙණ','මුවසිරස','අද','පුනාවස','පුෂ','අස්ලිස','මා','පුවපල්','උත්‍රපල්','හත','සිත','සා','විසා','අනුර','දෙට','මුල','පුවසල','උත්‍රසල','සුවණ','දෙනට','සියාවස','පුවපුටුප','උත්‍රපුටුප','රේවතී'];
 const RASHI=['Mesha','Vrishabha','Mithuna','Karkata','Simha','Kanya','Tula','Vrishchika','Dhanu','Makara','Kumbha','Meena'];
 const RASHI_SI=['මේෂ','වෘෂභ','මිථුන','කටක','සිංහ','කන්‍යා','තුලා','වෘශ්චික','ධනු','මකර','කුම්භ','මීන'];
 const GANA=['Deva','Manushya','Rakshasa']; const GANA_SI=['දේව','මනුෂ්‍ය','රාක්ෂස']; const GANA_MAP=[0,1,2,1,0,1,0,0,2,2,1,1,0,2,0,2,0,2,2,1,1,0,2,2,1,1,0];
 const YONI_EN=['Ashwa','Gaja','Mesha','Sarpa','Shwana','Marjara','Mushika','Go','Mahisha','Vyaghra','Mriga','Vanara','Nakula','Simha'];
-const YONI_SI=['අශ්ව','ගජ','මේෂ','සර්ප','ශුනක','මාර්ජර','මූෂික','ගව','මහිෂ','ව්‍යාඝ්‍ර','මෘග','වානර','නකුල','සිංහ'];
+const YONI_SI=['අශ්ව','ඇත්','එළු','සර්ප','සුනඛ','බළල්','මී','ගව','මී ගව','ව්‍යාඝ්‍ර','මුව','වඳුරු','මුගටි','සිංහ'];
 const YONI_MAP=[0,1,2,3,3,4,5,2,5,6,6,7,8,9,8,9,10,10,4,11,12,11,13,0,13,7,1];
 const YONI_ENEMY=[[0,8],[1,13],[2,11],[3,12],[4,10],[5,6],[7,9]];
 const RAJJU=['Pada','Kati','Nabhi','Kanta','Shiro']; const RAJJU_SI=['පාද','කටි','නාභි','කණ්ඨ','ශීර්ෂ'];
