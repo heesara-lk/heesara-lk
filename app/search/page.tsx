@@ -4,13 +4,20 @@ import { supabase, DISTRICTS_SI, JOBS, CASTES } from '@/lib/supabase-heesara'
 import Link from 'next/link'
 
 const RELIGIONS = ['Buddhist','Catholic','Christian','Hindu','Islam','Any Other'];
-const RELIGIONS_SI: Record<string,string> = { 'Buddhist':'බෞද්ධ','Catholic':'කතෝලික','Christian':'ක්‍රිස්තියානි','Hindu':'හින්දු','Islam':'ඉස්ලාම්','Any Other':'වෙනත්' };
+const RELIGIONS_SI: Record<string,string> = { 'Buddhist':'බෞද්ධ','Catholic':'කතෝලික','Christian':'ක්රිස්තියානි','Hindu':'හින්දු','Islam':'ඉස්ලාම්','Any Other':'වෙනත්' };
 
 const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com'];
 function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
 function isAdminEmail(email?:string|null){ if(!email) return false; const low=email.toLowerCase(); const norm=normalizeEmail(email); return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm); }
+
+// LEGAL AGE CONSTANTS - විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි
+const MIN_AGE = 18;
+const MAX_AGE = 70;
+const AGE_OPTIONS = Array.from({length: MAX_AGE - MIN_AGE + 1}, (_, i) => MIN_AGE + i);
+// Add 'නැත' for housewife - culturally needed
+const JOBS_WITH_NATH = JOBS.includes('නැත') ? JOBS : ['නැත', ...JOBS];
 
 export default function SearchPage(){
   const [profiles, setProfiles] = useState<any[]>([])
@@ -65,6 +72,30 @@ export default function SearchPage(){
     }
   }
 
+  // Age handlers - enforce 18+ only
+  const handleAgeMinChange = (val: string) => {
+    let num = parseInt(val) || MIN_AGE;
+    if (num < MIN_AGE) num = MIN_AGE;
+    if (num > MAX_AGE) num = MAX_AGE;
+    // Ensure min doesn't exceed current max
+    const currentMax = parseInt(filters.age_max) || MAX_AGE;
+    if (num > currentMax) {
+      setFilters({...filters, age_min: num.toString(), age_max: num.toString()});
+    } else {
+      setFilters({...filters, age_min: num.toString()});
+    }
+  }
+
+  const handleAgeMaxChange = (val: string) => {
+    let num = parseInt(val) || MAX_AGE;
+    if (num < MIN_AGE) num = MIN_AGE;
+    if (num > MAX_AGE) num = MAX_AGE;
+    // Ensure max not less than min
+    const currentMin = parseInt(filters.age_min) || MIN_AGE;
+    if (num < currentMin) num = currentMin;
+    setFilters({...filters, age_max: num.toString()});
+  }
+
   const loadProfiles = async (genderOverride?:string) => {
     setLoading(true)
     const genderToUse = genderOverride!== undefined? genderOverride : filters.gender
@@ -83,7 +114,7 @@ export default function SearchPage(){
 
     if(filters.district_si!=='any'){
       const SI_TO_EN: Record<string,string> = {
-        'අම්පාර':'Ampara','අනුරාධපුර':'Anuradhapura','බදුල්ල':'Badulla','මඩකලපුව':'Batticaloa','කොළඹ':'Colombo','ගාල්ල':'Galle','ගම්පහ':'Gampaha','හම්බන්තොට':'Hambantota','යාපනය':'Jaffna','කළුතර':'Kalutara','මහනුවර':'Kandy','කෑගල්ල':'Kegalle','කිලිනොච්චිය':'Kilinochchi','කුරුණෑගල':'Kurunegala','මන්නාරම':'Mannar','මාතලේ':'Matale','මාතර':'Matara','මොනරාගල':'Monaragala','මුලතිව්':'Mullaitivu','නුවරඑළිය':'Nuwara Eliya','පොලොන්නරුව':'Polonnaruwa','පුත්තලම':'Puttalam','රත්නපුර':'Ratnapura','ත්‍රිකුණාමලය':'Trincomalee','වවුනියාව':'Vavuniya'
+        'අම්පාර':'Ampara','අනුරාධපුර':'Anuradhapura','බදුල්ල':'Badulla','මඩකලපුව':'Batticaloa','කොළඹ':'Colombo','ගාල්ල':'Galle','ගම්පහ':'Gampaha','හම්බන්තොට':'Hambantota','යාපනය':'Jaffna','කළුතර':'Kalutara','මහනුවර':'Kandy','කෑගල්ල':'Kegalle','කිලිනොච්චිය':'Kilinochchi','කුරුණෑගල':'Kurunegala','මන්නාරම':'Mannar','මාතලේ':'Matale','මාතර':'Matara','මොනරාගල':'Monaragala','මුලතිව්':'Mullaitivu','නුවරඑළිය':'Nuwara Eliya','පොලොන්නරුව':'Polonnaruwa','පුත්තලම':'Puttalam','රත්නපුර':'Ratnapura','ත්රිකුණාමලය':'Trincomalee','වවුනියාව':'Vavuniya'
       };
       const en = SI_TO_EN[filters.district_si] || ''
       filtered = filtered.filter((p:any)=>{
@@ -95,12 +126,11 @@ export default function SearchPage(){
     }
     if(filters.job!=='any') filtered = filtered.filter((p:any)=> p.job_main===filters.job || p.job===filters.job || p.job_main_en===filters.job)
     if(filters.caste!=='any') filtered = filtered.filter((p:any)=> p.caste_main===filters.caste || p.caste===filters.caste)
-    // NEW: Religion filter
     if(filters.religion!=='any') filtered = filtered.filter((p:any)=> p.religion===filters.religion)
 
     if(filters.age_min || filters.age_max){
-      const min = parseInt(filters.age_min)||0
-      const max = parseInt(filters.age_max)||100
+      const min = Math.max(parseInt(filters.age_min)||MIN_AGE, MIN_AGE)
+      const max = Math.max(parseInt(filters.age_max)||MAX_AGE, MIN_AGE)
       filtered = filtered.filter((p:any)=>{
         const dob = p.dob || p.birth_date
         if(!dob) return true
@@ -152,7 +182,7 @@ export default function SearchPage(){
 
           {myProfiles.length>0 && (
             <div className='bg-white border-2 border-blue-200 p-3 rounded-xl mt-4 mb-2'>
-              <div className='font-bold mb-2 text-sm'>Switch Active Profile: ({myProfiles.length}/2) {isAdmin? 'ADMIN '+myEmail : myEmail} {myProfiles.filter((p:any)=>p.is_visible===false).length>0? `(${myProfiles.filter((p:any)=>p.is_visible===false).length} Hidden)` : ''}</div>
+              <div className='font-bold mb-2 text-sm'>Switch Profiles: ({myProfiles.length}/2) {isAdmin? 'ADMIN '+myEmail : myEmail} {myProfiles.filter((p:any)=>p.is_visible===false).length>0? `(${myProfiles.filter((p:any)=>p.is_visible===false).length} Hidden)` : ''}</div>
               <div className='flex gap-2 flex-wrap'>
                 {myProfiles.map((p:any)=>(
                   <button key={p.id} onClick={()=>switchActiveProfile(p.id)} className={'px-4 py-2 rounded-full border font-bold text-sm ' + (currentProfile?.id===p.id?'bg-blue-600 text-white':'bg-white') + (p.is_visible===false?'!bg-yellow-100!border-yellow-400':'')}>{p.name||p.full_name} - {p.age}y {currentProfile?.id===p.id?' (Active)':''} {p.is_visible===false?' (Hidden)':''}</button>
@@ -163,17 +193,32 @@ export default function SearchPage(){
           {currentProfile && (
             <div className='bg-blue-50 border p-3 rounded-xl mb-4 text-xs'>
               <div className='font-bold'>Viewing as: {currentProfile.name||currentProfile.full_name} - {currentProfile.age}y ({currentProfile.gender}) {currentProfile.religion? `- ${currentProfile.religion}`:''} - Showing: {currentProfile.gender==='male'?'Female':'Male'} only</div>
+              <div className='text-[11px] text-gray-600 mt-1'>⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - 18+ marriage age only</div>
             </div>
           )}
 
           <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
             <div><label className="text-xs font-bold">ස්ත්‍රී/පුරුෂ</label><select value={filters.gender} onChange={e=>{ const v=e.target.value; setFilters({...filters, gender:v}); loadProfiles(v); }} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option><option value="male">පුරුෂ</option><option value="female">ස්ත්‍රී</option></select></div>
             <div><label className="text-xs font-bold">දිස්ත්‍රික්කය</label><select value={filters.district_si} onChange={e=>setFilters({...filters, district_si:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{DISTRICTS_SI.map(d=><option key={d}>{d}</option>)}</select></div>
-            <div><label className="text-xs font-bold">ආගම - Religion</label><select value={filters.religion} onChange={e=>setFilters({...filters, religion:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම ආගමක්</option>{RELIGIONS.map(r=><option key={r} value={r}>{RELIGIONS_SI[r]} - {r}</option>)}</select></div>
-            <div><label className="text-xs font-bold">රැකියාව</label><select value={filters.job} onChange={e=>setFilters({...filters, job:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{JOBS.map(j=><option key={j}>{j}</option>)}</select></div>
+            <div><label className="text-xs font-bold">ආගම</label><select value={filters.religion} onChange={e=>setFilters({...filters, religion:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම ආගමක්</option>{RELIGIONS.map(r=><option key={r} value={r}>{RELIGIONS_SI[r]} - {r}</option>)}</select></div>
+            <div><label className="text-xs font-bold">රැකියාව</label><select value={filters.job} onChange={e=>setFilters({...filters, job:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{JOBS_WITH_NATH.map(j=><option key={j}>{j}</option>)}</select></div>
             <div><label className="text-xs font-bold">කුලය</label><select value={filters.caste} onChange={e=>setFilters({...filters, caste:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{CASTES.map(c=><option key={c}>{c}</option>)}</select></div>
-            <div className="grid grid-cols-2 gap-2"><div><label className="text-xs font-bold">වයස අවම</label><input type="number" value={filters.age_min} onChange={e=>setFilters({...filters, age_min:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300" /></div><div><label className="text-xs font-bold">වයස උපරිම</label><input type="number" value={filters.age_max} onChange={e=>setFilters({...filters, age_max:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300" /></div></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-bold">වයස අවම</label>
+                <select value={filters.age_min} onChange={e=>handleAgeMinChange(e.target.value)} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
+                  {AGE_OPTIONS.map(age=><option key={age} value={age.toString()}>{age}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold">වයස උපරිම</label>
+                <select value={filters.age_max} onChange={e=>handleAgeMaxChange(e.target.value)} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
+                  {AGE_OPTIONS.map(age=><option key={age} value={age.toString()}>{age}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
+          <p className="text-[11px] text-gray-500 mt-2">⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - Search shows 18+ only. Porondam matching is cultural belief only.</p>
           <button onClick={()=>loadProfiles()} disabled={loading} className="mt-4 w-full md:w-auto bg-[#7B1F2A] text-white px-6 py-2 rounded-xl text-sm font-bold">{loading?'හොයනවා...':'🔍 Search කරන්න'}</button>
 
           <div className="mt-6 grid md:grid-cols-3 gap-4">
