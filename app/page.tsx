@@ -125,7 +125,7 @@ export default function Home(){
 
       <section className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-4">
         {[
-          {icon:'🏹', title:'අනංගයාගේ ආදර මල් හීසරය', desc:'හදවතට වදින ආදරය'},
+          {icon:'🏹', title:'ආදරයේ මල් හීසරය', desc:'හදවතට වදින ආදරය'},
           {icon:'🎯', title:'Auto Top 10', desc:'Score 100න්'},
           {icon:'🔮', title:'පොරොන්දම් 20', desc:'20 පොරොන්දම් ✅❌ එක්ක detail'},
           {icon:'🛡', title:'Professional & Secure', desc:'1 Account 2 Profiles, Privacy switches'},
