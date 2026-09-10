@@ -37,9 +37,9 @@ export const DISTRICTS = DISTRICTS_SI; // alias for old code
 export const CITIES_SI = ['කොළඹ','දෙහිවල','මහරගම','මහනුවර','ගම්පහ','කුරුණෑගල','ගාල්ල','මාතර','යාපනය','අනුරාධපුර','රත්නපුර','බදුල්ල','කෑගල්ල','කළුතර','නුවරඑළිය'];
 export const CITIES_EN = ['Colombo','Dehiwala','Maharagama','Kandy','Gampaha','Kurunegala','Galle','Matara','Jaffna','Anuradhapura','Ratnapura','Badulla','Kegalle','Kalutara','Nuwara Eliya'];
 
-export const JOBS = ['ගුරු','විදුහල්පති','වෛද්‍ය','හෙද','ව්‍යාපාරික','ස්වයං රැකියා','හමුදා','පොලිස්/ආරක්ෂක','රජයේ සේවක','පෞද්ගලික සේවක','ගොවිතැන','වෙනත්'];
+export const JOBS = ['ගුරු','විදුහල්පති','අධ්‍යාපන ක්ෂේත්‍රය','හෙද','වෛද්‍ය','සෞඛ්‍ය අංශය','ඉංජිනේරු','තාක්ෂණ නිලධාරී','ඉදිකිරීම් ක්ෂේත්‍රය','ඝනකාධිකාරි','ව්‍යාපාරික','ව්‍යවසායක','ස්වයං රැකියා','හමුදා','පොලිස්/ආරක්ෂක','රජයේ සේවක','නීතිඥ','නීති ක්ෂේත්‍රය','පෞද්ගලික සේවක','ඉඩම්හිමි වැවිලිකරු','ගොවිතැන','වෙනත්','නැත'];
 export const JOBS_SPLIT = JOBS;
-export const JOBS_EN = ['Teacher','Principal','Doctor','Nurse','Business','Self-employed','Army','Police/Security','Government','Private','Farming','Other'];
+export const JOBS_EN = ['Teacher','Principal','Education Sector','Nurse','Doctor','Health sector','Engineer','Technical Officer','Construction Sector','Accountant','Business','Entrepreneur','Self-employed','Army','Police/Security','Government','Lawyer','Law sector','Private','Own Plantation','Farming','Any Other','No'];
 
 export const CASTES = ['අනවශ්‍යයි / නොදනී','ගොවිගම','කරාව','දුරාව','සලාගම','බත්ගම','වහුම්පුර','වෙනත්'];
 export const CASTES_EN = ['Unwanted/Unknown','Govigama','Karawa','Durawa','Salagama','Bathgama','Wahumpura','Other'];
