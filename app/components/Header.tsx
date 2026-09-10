@@ -22,7 +22,7 @@ export default function Header(){
         </Link>
         <nav className="flex items-center gap-2">
           <Link href="/matches" className="text-xs md:text-sm px-4 py-2 rounded-full bg-[#7B1F2A] text-white font-bold hover:bg-[#5a1620] shadow">💖 Matches</Link>
-          <Link href="/search" className="text-xs md:text-sm px-3 py-2 rounded-full border bg-white hover:bg-gray-50">🔍</Link>
+          <Link href="/search" className="text-xs md:text-sm px-3 py-2 rounded-full border bg-white font-bold hover:bg-gray-50">🔍 Search</Link>
           <Link href="/account" className="w-8 h-8 rounded-full bg-[#FFF8E7] border-2 border-[#D4A017]/30 flex items-center justify-center hover:border-[#7B1F2A]">👤</Link>
         </nav>
       </div>
