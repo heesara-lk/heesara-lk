@@ -10,8 +10,8 @@ const notoSinhala = Noto_Sans_Sinhala({
 })
 
 export const metadata: Metadata = {
-  title: 'හීසර.lk - හරි කෙනා හමුවන තැන',
-  description: 'හීසරෙන් හීසරයට - Sri Lankan Matrimony - අනංගයාගේ ආදර ඊතලය',
+  title: 'හීසර.lk - හදවතින් හදවතට - සිහින සැබෑ වෙන තැන',
+  description: 'හීසරයෙන් හීසරයට - Sri Lankan Matrimony - අනංගයාගේ ආදර ඊතලය',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
