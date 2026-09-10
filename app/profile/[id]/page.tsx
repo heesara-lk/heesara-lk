@@ -47,7 +47,7 @@ function getPorondamScore(a:any,b:any){
   if(!a.birth_date||!b.birth_date) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:0,max:1,match:false,details:'දත්ත අඩුයි'})), total:0, percent:0, note:'දත්ත අඩුයි', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   const real = calculateRealPorondam(a,b);
   const list = real.details.map((d:any)=>({...d, score:d.obtained, name_si:d.name_si, name_en:d.name_en}));
-  return { list, total:real.total, percent:Math.round(real.total/20*100), note: `Real: ${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`, debug:real.debug, lagnaA:real.lagnaA, lagnaB:real.lagnaB, isRajjuFail:real.isRajjuFail };
+  return { list, total:real.total, percent:Math.round(real.total/20*100), note: `${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`, debug:real.debug, lagnaA:real.lagnaA, lagnaB:real.lagnaB, isRajjuFail:real.isRajjuFail };
 }
 
 // --- MUTUAL LOGIC FOR AGE/HEIGHT (range) + LIVING/RELIGION/CASTE/JOB (exact) ---
@@ -300,11 +300,11 @@ export default function Page(){
   return (
     <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen' style={{fontFamily: "'Noto Sans Sinhala', sans-serif"}}>
       <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
-      {cur && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>Viewing: {cur.full_name} → {profile.full_name}</div><div className='text-xs'></div>{!canView && <div className='mt-2 bg-red-100 border p-2 rounded-lg text-xs'>🔒 Pending - Pay Rs.{renewalPrice} → <button onClick={handlePay} className='bg-red-600 text-white px-3 py-1 rounded-full ml-2'>Pay Rs.{renewalPrice}</button></div>}</div>}
+      {cur && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{cur.full_name} බලන්නේ → {profile.full_name} සමග ගැලපීම</div><div className='text-xs'></div>{!canView && <div className='mt-2 bg-red-100 border p-2 rounded-lg text-xs'>🔒 Pending - Pay Rs.{renewalPrice} → <button onClick={handlePay} className='bg-red-600 text-white px-3 py-1 rounded-full ml-2'>Pay Rs.{renewalPrice}</button></div>}</div>}
       <div className='bg-white border rounded-2xl p-6 shadow'>
         <div className='flex gap-4'>
           <div className='w-32 h-32 relative overflow-hidden rounded-xl bg-gray-100 border-2 flex-shrink-0'>{main? <><img src={main} className='w-full h-full object-cover' style={{filter: isPrivatePhoto?'blur(16px)':''}} />{isPrivatePhoto && <div className='absolute inset-0 flex items-center justify-center bg-black/30 text-white font-bold'>Locked</div>}</> : <div className='w-full h-full bg-gray-200 flex items-center justify-center'>User</div>}</div>
-          <div><h1 className='text-2xl font-bold'>{profile.full_name} - {profile.age}y</h1><div className='text-sm'>{profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''}</div><div className='mt-2 text-lg font-bold text-blue-600'>Total: {displayBreakdown?.total}%</div></div>
+          <div><h1 className='text-2xl font-bold'>{profile.full_name}</h1><div className='text-sm'>{profile.age} අවුරුදු {profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''}</div><div className='mt-2 text-lg font-bold text-blue-600'>මුළු ගැලපීම: {displayBreakdown?.total}% (සියලු කරුණු සැලකීමෙන්)</div></div>
         </div>
 
         <div className='mt-4 bg-amber-50 border-2 border-amber-200 p-4 rounded-xl text-sm'>
@@ -314,36 +314,36 @@ export default function Page(){
 
         <div className='mt-3 grid md:grid-cols-2 gap-3 text-sm'>
           <div className='bg-gray-50 border p-3 rounded-xl'>
-            <div className='font-bold mb-1'>Personal Details</div>
+            <div className='font-bold mb-1'>Personal Details - පුද්ගලික තොරතුරැ</div>
             <div>Living: {profile.living_city||profile.current_city} - {profile.living_district_si}</div>
             <div>Birth: {profile.birth_date} {profile.birth_district_si} Birth Time - Secured.</div>
             <div>Height: {profile.height_cm}cm | Education: {profile.education||profile.education_level||'-'}</div>
             <div>Job: {profile.job} | Religion: {profile.religion||'-'} | Caste: {profile.caste} | Marital: {profile.marital_status||'-'}</div>
           </div>
           <div className='bg-purple-50 border p-3 rounded-xl'>
-            <div className='font-bold mb-1'>Looking For</div>
+            <div className='font-bold mb-1'>Looking For - බලාපොරොත්තු වන</div>
             <div>Age: {profile.expectation_age_min||18}-{profile.expectation_age_max||60} | Height: {profile.expectation_height_min||'-'}-{profile.expectation_height_max||'-'}</div>
             <div>District: {profile.expectation_district||'Any'} | Job: {profile.expectation_job||'Any'} | Caste: {profile.expectation_caste||'Any'} | Religion: {profile.expectation_religion||'Any'} | Horoscope Required: {profile.horoscope_required? 'Yes':'No'}</div>
           </div>
         </div>
 
         <div className='mt-4 bg-gray-50 border-2 border-blue-300 rounded-xl p-3'>
-          <div className='font-bold text-sm mb-2'>🔥 Matching Breakdown</div>
+          <div className='font-bold text-sm mb-2'>🔥 Matching Breakdown ගැලපීම් සඳහා ලබාගත හැකි උපරිම ලකුණු සහ ඉන් ලැබුණු ප්‍රතිශත</div>
           <div className='grid grid-cols-3 md:grid-cols-7 gap-2 text-xs'>
-            <div className={'p-2 rounded text-center border-2 '+scoreColor(displayBreakdown.porondamScore)}><div className='font-bold'>Porondam 40%</div><div className='text-lg'>{displayBreakdown.porondamScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.ageScore)}><div className='font-bold'>Age 20%</div><div>{displayBreakdown.ageScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.districtScore)}><div className='font-bold'>Living 10%</div><div>{displayBreakdown.districtScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.religionScore)}><div className='font-bold'>Religion 10%</div><div>{displayBreakdown.religionScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.casteScore)}><div className='font-bold'>Caste 10%</div><div>{displayBreakdown.casteScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.jobScore)}><div className='font-bold'>Job 5%</div><div>{displayBreakdown.jobScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.heightScore)}><div className='font-bold'>Height 5%</div><div>{displayBreakdown.heightScore}%</div></div>
+            <div className={'p-2 rounded text-center border-2 '+scoreColor(displayBreakdown.porondamScore)}><div className='font-bold'>Porondam (40)</div><div className='text-lg'>{displayBreakdown.porondamScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.ageScore)}><div className='font-bold'>Age (20)</div><div>{displayBreakdown.ageScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.districtScore)}><div className='font-bold'>Living (10)</div><div>{displayBreakdown.districtScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.religionScore)}><div className='font-bold'>Religion (10)</div><div>{displayBreakdown.religionScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.casteScore)}><div className='font-bold'>Caste (10)</div><div>{displayBreakdown.casteScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.jobScore)}><div className='font-bold'>Job (5)</div><div>{displayBreakdown.jobScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.heightScore)}><div className='font-bold'>Height (5)</div><div>{displayBreakdown.heightScore}%</div></div>
           </div>
         </div>
         <div className='mt-6 border-t pt-4'>
           <h2 className='font-bold text-lg mb-2'>පොරොන්දම් 20 (සැබෑ චන්ද්‍ර නැකැත් සහ ලග්න)</h2>
 {displayPorondam.debug && (
   <div className='bg-indigo-50 border-2 border-indigo-300 p-3 rounded-xl mb-3 text-sm'>
-    <div className='font-bold'>🔭 Real (Lahiri Ayanamsa) - District lat/long used</div>
+    <div className='font-bold'>🔭 (Lahiri Ayanamsa) - District lat/long used</div>
     <div>ඔබ: {displayPorondam.debug.nakA} | ලග්නය: {displayPorondam.lagnaA?.nameSi} {displayPorondam.lagnaA?.deg}°</div>
     <div>අනෙකා: {displayPorondam.debug.nakB} | ලග්නය: {displayPorondam.lagnaB?.nameSi} {displayPorondam.lagnaB?.deg}°</div>
     <div className='text-xs opacity-70'>ලබා දී ඇති උපන් වේලාව අනුව ගණනය කර ඇත. (අනෙකාගේ උපන් වේලාව දැන ගැනීමට පහත ඇති දුරකථන අංක ඔස්සේ කේන්ද්‍ර හිමිකරු සම්බන්ධ කරගන්න.).</div>
