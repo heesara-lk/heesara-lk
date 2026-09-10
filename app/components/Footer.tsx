@@ -26,20 +26,18 @@ export default function Footer(){
         <div>
           <p className="font-bold text-white mb-3">Features</p>
           <ul className="space-y-2 text-sm text-white/70">
-            <li>• Auto Top ගැලපීම් 10ක් ලකුණු 100න්</li>
+            <li>• Auto Top ගැලපීම් විස්තර සමගින්</li>
             <li>• පොරොන්දම් 20 ✅❌ details</li>
             <li>• Photo WebP compress</li>
-            <li>• 2 profiles/email anti-scam</li>
-            <li>• Hr/Min/AM-PM උපන් වේලාව</li>
+            <li>• email 1 - profiles 2 / anti-scam</li>            
             <li>• ශරීර + වර්ණය + උස ගැලපීම්</li>
           </ul>
         </div>
 
-        <div>
-          {/* REMOVED: අර්ථය heading as requested */}
+        <div>          
           <p className="text-sm text-white/70 leading-relaxed mt-2">
-            ආදරයේ මල් හීසරය. හදවතට වදින ආදරය.<br/>
-            විශ්වාසයෙන් බැඳෙන තැන.
+            ආදරයේ මල් හීසර<br/>
+            හදවතට වදින ආදරය - විශ්වාසයෙන් බැඳෙන තැන
           </p>
           <p className="text-xs text-white/40 mt-6">© 2026 Heesara.lk • Made in Sri Lanka LK</p>
           <div className="mt-3 flex gap-3 text-xs text-white/50">
