@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Footer(){
   return (
-    <footer className="bg-[#5a1620] text-white mt-10">
+    <footer className="bg-[#5a1620] text-white mt-10 border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-8">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
@@ -14,11 +14,16 @@ export default function Footer(){
           </div>
           <p className="mt-4 text-sm text-white/70 leading-relaxed">
             ලංකාවේ විශ්වාසනීයම මංගල යෝජනා web පිටුව.<br/>
-           Professional    Secure    Verified
+            Professional • Secure • Verified • PDPA Compliant
           </p>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-3 text-[11px] leading-relaxed text-white/50 bg-white/5 border border-white/10 rounded-lg p-2.5">
+            <p>⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි. Heesara does NOT guarantee marriage. Profiles are posted by users, we only show matches. Please verify before proceeding.</p>
+            <p className="mt-1">🔮 පොරොන්දම් 20 is cultural belief for information only, not astrological guarantee.</p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ Verified</span>
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ පොරොන්දම් 20</span>
+            <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස)</span>
             <span className="text-xs bg-[#D4A017] text-[#5a1620] px-3 py-1 rounded-full font-bold">මුල් 1000 Free</span>
           </div>
         </div>
@@ -26,26 +31,40 @@ export default function Footer(){
         <div>
           <p className="font-bold text-white mb-3">Features</p>
           <ul className="space-y-2 text-sm text-white/70">
-            <li>• Auto Top ගැලපීම් විස්තර සමගින්</li>
+            <li>• Auto Top 10 ගැලපීම් 100න් score</li>
             <li>• පොරොන්දම් 20 ✅❌ details</li>
             <li>• Photo WebP compress</li>
-            <li>• email 1 - profiles 2 / anti-scam</li>            
+            <li>• 1 Account = 2 Profiles, anti-scam</li>            
+            <li>• Hr/Min/AM-PM උපන් වේලාව</li>
             <li>• ශරීර + වර්ණය + උස ගැලපීම්</li>
           </ul>
         </div>
 
         <div>          
-          <p className="text-sm text-white/70 leading-relaxed mt-2">
-            ආදරයේ මල් හීසර<br/>
+          <p className="text-sm text-white/70 leading-relaxed">
+            <span className="text-white font-bold">ආදරයේ මල් හීසර</span><br/>
             හදවතට වදින ආදරය - විශ්වාසයෙන් බැඳෙන තැන
           </p>
-          <p className="text-xs text-white/40 mt-6">© 2026 Heesara.lk • Made in Sri Lanka LK</p>
-          <div className="mt-3 flex gap-3 text-xs text-white/50">
+          <div className="mt-4 text-xs text-white/60 space-y-1">
+            <p>📧 support@heesara.lk</p>
+            <p>📧 contact@heesara.lk</p>
+            <p>📞 +94 91 427 0377</p>
+            <p>📍 Galle, Sri Lanka</p>
+          </div>
+          <p className="text-xs text-white/40 mt-5">© 2026 Heesara.lk • Made in Sri Lanka LK<br/>PDPA Act No.9 of 2022 Compliant</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-white/60">
             <Link href="/privacy" className="hover:text-white underline">Privacy</Link>
             <Link href="/terms" className="hover:text-white underline">Terms</Link>
             <Link href="/refund" className="hover:text-white underline">Refund</Link>
             <Link href="/contact" className="hover:text-white underline">Contact</Link>
           </div>
+        </div>
+      </div>
+      
+      <div className="border-t border-white/10 bg-black/20">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] text-white/40">
+          <p>Heesara.lk is a community membership platform for family-arranged marriage proposals. Not a dating site. No adult chat.</p>
+          <p>🔐 Secure • Verified • විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) • No Guarantee</p>
         </div>
       </div>
     </footer>
