@@ -64,11 +64,11 @@ export default function Home(){
             </div>
             {/* TITLE pushed to bottom to align with right stats */}
             <div className="mt-auto pt-100">
-               <h1 className="mt-1 text-4xl md:text-6xl font-bold text-white leading-[.85] tracking-tight">
+               <h1 className="mt-1 px-3 py-1 text-4xl md:text-6xl font-bold text-white leading-[.85] tracking-tight">
               හීසරයෙන්<br/>
-              <span className="text-[#D4A017] px-1 py-1 mt-6">හීසරයට</span><br/>
-              <span className="text-2xl md:text-3xl font-normal text-white/80 px-1 py-3 block mt-2">හදවතින් හදවතට</span>
-              <span className="text-2xl md:text-3xl font-normal text-[#D4A017] px-1 py-1 block">සිහින සැබෑ වෙන තැන</span>
+              <span className="text-[#D4A017] px-10 py-5 block mt-1">හීසරයට</span>
+              <span className="text-2xl md:text-3xl font-normal text-white/80 px-3 py-1 block mt-1">හදවතින් හදවතට</span>
+              <span className="text-2xl md:text-3xl font-normal text-[#D4A017] px-3 py-1 block">සිහින සැබෑ වෙන තැන</span>
             </h1>
             </div>
           </div>
