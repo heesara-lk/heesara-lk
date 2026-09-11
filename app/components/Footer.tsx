@@ -19,12 +19,15 @@ export default function Footer(){
           <div className="mt-3 text-[11px] leading-relaxed text-white/50 bg-white/5 border border-white/10 rounded-lg p-2.5">
             <p>⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි. Heesara does NOT guarantee marriage. Profiles are posted by users, we only show matches. Please verify before proceeding.</p>
             <p className="mt-1">🔮 පොරොන්දම් 20 is cultural belief for information only, not astrological guarantee.</p>
+            <p className="mt-1">🛡️ Guardian verification required — contacts hidden until admin verifies guardian contact to prevent spam/fun profiles.</p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ Verified</span>
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ පොරොන්දම් 20</span>
             <span className="text-xs bg-white/10 px-3 py-1 rounded-full">✓ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස)</span>
-            <span className="text-xs bg-[#D4A017] text-[#5a1620] px-3 py-1 rounded-full font-bold">මුල් 1000 Free</span>
+            <span className="text-xs bg-[#D4A017] text-[#5a1620] px-3 py-1 rounded-full font-bold">මුල් 100 Free</span>
+            <span className="text-xs bg-orange-400 text-[#5a1620] px-3 py-1 rounded-full font-bold">ඊළඟ 900 @ Rs.500 Verified</span>
+            <span className="text-xs bg-white/10 px-3 py-1 rounded-full">Profiles 1000 ට පසු Rs.1500</span>
           </div>
         </div>
 
@@ -37,6 +40,7 @@ export default function Footer(){
             <li>• 1 Account = 2 Profiles, anti-scam</li>            
             <li>• Hr/Min/AM-PM උපන් වේලාව</li>
             <li>• ශරීර + වර්ණය + උස ගැලපීම්</li>
+            <li>• 🛡️ Guardian Verified + 3 Report = Block</li>            
           </ul>
         </div>
 
@@ -64,7 +68,7 @@ export default function Footer(){
       <div className="border-t border-white/10 bg-black/20">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] text-white/40">
           <p>Heesara.lk is a community membership platform for family-arranged marriage proposals. Not a dating site. No adult chat.</p>
-          <p>🔐 Secure • Verified • විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) • No Guarantee</p>
+          <p>🔐 Secure • Verified • විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) • Guardian Verified • No Guarantee</p>
         </div>
       </div>
     </footer>
