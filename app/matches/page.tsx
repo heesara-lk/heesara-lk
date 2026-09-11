@@ -218,7 +218,7 @@ export default function MatchesPage(){
         </button>
       </div>
 
-      <div className='mt-3 text-[11px] text-gray-500 text-center'>Top 10 highest scored first, then next 10... Education included in 100-mark system</div>
+      <div className='mt-3 text-[11px] text-gray-500 text-center'>Top 10 highest scored first, then next 10...</div>
     </div>
   );
 }
