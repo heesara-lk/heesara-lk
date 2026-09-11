@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { isProfileActive } from '@/lib/subscription';
 import { calculateRealPorondam } from '@/lib/porondam-real';
 
-const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjula.upashantha@gmail.com','manjula.upashantha@heesara.lk'];
+const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com','manjula.upashantha@heesara.lk'];
 function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
@@ -14,7 +14,7 @@ function isAdminEmail(email?:string|null){ if(!email) return false; const low=em
 
 // FIXED: #10 was duplicate Yoni, now Vruksha, #14 Nadi spelling fixed
 const PORONDAM_20=[
-  {id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වශ්‍ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්‍ර'},{id:9,name_si:'ස්ත්‍රී දීර්ඝ'},{id:10,name_si:'වෘක්ෂ'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නාඩි'},{id:15,name_si:'ග්‍රහ මෛත්‍රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්‍ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},
+  {id:1,name_si:'නැකැත්'},{id:2,name_si:'ගණ'},{id:3,name_si:'යෝනි'},{id:4,name_si:'රාශි'},{id:5,name_si:'රාශි අධිපති'},{id:6,name_si:'වශ්ය'},{id:7,name_si:'දින'},{id:8,name_si:'මහේන්ද්ර'},{id:9,name_si:'ස්ත්රී දීර්ඝ'},{id:10,name_si:'වෘක්ෂ'},{id:11,name_si:'රජ්ජු'},{id:12,name_si:'වේධ'},{id:13,name_si:'වර්ණ'},{id:14,name_si:'නාඩි'},{id:15,name_si:'ග්රහ මෛත්රී'},{id:16,name_si:'භූත'},{id:17,name_si:'ගෝත්ර'},{id:18,name_si:'ලිංග'},{id:19,name_si:'පක්ෂි'},{id:20,name_si:'ආයු'},
 ];
 function scoreColor(s:number){ if(s>=80) return 'bg-green-100 border-green-200 text-green-800'; if(s>=50) return 'bg-yellow-100 border-yellow-200 text-yellow-800'; if(s>=20) return 'bg-orange-100 border-orange-200 text-orange-800'; return 'bg-red-100 border-red-200 text-red-800'; }
 
@@ -103,16 +103,32 @@ function calculateMatchingBreakdown(viewer:any, candidate:any){
   const condRel1 = isAny(viewer.expectation_religion) || matchesExact(viewer.expectation_religion, candidate.religion);
   const condRel2 = isAny(candidate.expectation_religion) || matchesExact(candidate.expectation_religion, viewer.religion);
   const religionScore = condRel1 && condRel2? 100 : condRel1 &&!condRel2? 70 :!condRel1 && condRel2? 40 : 10;
+  const condEdu1 = isAny(viewer.expectation_education) || matchesExact(viewer.expectation_education, candidate.education) || matchesExact(viewer.expectation_education, candidate.education_level);
+  const condEdu2 = isAny(candidate.expectation_education) || matchesExact(candidate.expectation_education, viewer.education) || matchesExact(candidate.expectation_education, viewer.education_level);
+  const educationScore = condEdu1 && condEdu2? 100 : condEdu1 &&!condEdu2? 70 :!condEdu1 && condEdu2? 40 : 10;
+
   const porData=getPorondamScore(viewer,candidate);
   return {
-    ageScore, heightScore, districtScore, religionScore, jobScore, casteScore,
+    ageScore, heightScore, districtScore, religionScore, jobScore, casteScore, educationScore,
     porondamScore:porData.percent, porondamDetail:porData,
-    total:Math.round(porData.percent*0.40+ageScore*0.20+districtScore*0.10+religionScore*0.10+casteScore*0.10+jobScore*0.05+heightScore*0.05)
+    total:Math.round(porData.percent*0.30+ageScore*0.20+religionScore*0.10+educationScore*0.10+casteScore*0.10+jobScore*0.10+districtScore*0.05+heightScore*0.05)
   };
 }
 
 export default function MatchesPage(){
-  const router=useRouter(); const [matches,setMatches]=useState<any[]>([]); const [currentProfile,setCurrentProfile]=useState<any>(null); const [myIds,setMyIds]=useState<string[]>([]); const [myProfiles,setMyProfiles]=useState<any[]>([]); const [loading,setLoading]=useState(true); const [interests,setInterests]=useState<any>({}); const [isAdmin,setIsAdmin]=useState(false); const [myEmail,setMyEmail]=useState('');
+  const router=useRouter(); 
+  const [matches,setMatches]=useState<any[]>([]); 
+  const [currentProfile,setCurrentProfile]=useState<any>(null); 
+  const [myIds,setMyIds]=useState<string[]>([]); 
+  const [myProfiles,setMyProfiles]=useState<any[]>([]); 
+  const [loading,setLoading]=useState(true); 
+  const [interests,setInterests]=useState<any>({}); 
+  const [isAdmin,setIsAdmin]=useState(false); 
+  const [myEmail,setMyEmail]=useState('');
+  // NEW: pagination - Top 10 first, then next 10
+  const PAGE_SIZE = 10;
+  const [page,setPage]=useState(1);
+
   async function load(curIdOverride?:string){
     setLoading(true);
     let myIdsList:string[]=[]; try{ myIdsList=JSON.parse(localStorage.getItem('heesara_my_ids')||'[]'); }catch{} setMyIds(myIdsList);
@@ -141,17 +157,31 @@ export default function MatchesPage(){
     if(curProfile){ filtered=filtered.filter((p:any)=>p.gender&&curProfile.gender&&p.gender!==curProfile.gender); }
     filtered=filtered.map((p:any)=>{ if(!p.age){ const dob = p.dob || p.birth_date; if(dob) { const b = new Date(dob); p.age = new Date().getFullYear() - b.getFullYear(); } else { p.age = 25; } } if(!p.name) p.name = p.full_name; return p; }).filter((p:any)=>{ const name=(p.name||p.full_name||'').trim(); if(!name) return false; if(name==='- y -' || name.includes('- y - -')) return false; if(name.length<2) return false; if(p.age<18) return false; return true; });
     const scored=filtered.map((p:any)=>{ let breakdown=null; if(curProfile){ breakdown=calculateMatchingBreakdown(curProfile,p); } return {...p, breakdown, porondam:breakdown?.porondamDetail, match_score:breakdown?.total||0, _interestStatus: dbInterests[p.id]||interests[p.id]||'none'}; }).sort((a:any,b:any)=>b.match_score-a.match_score);
-    setMatches(scored); setLoading(false);
+    setMatches(scored); 
+    setPage(1); // reset to first page (Top 10) whenever matches reload
+    setLoading(false);
   }
   useEffect(()=>{ load(); },[]);
+
+  // pagination calculations
+  const totalPages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const endIdx = Math.min(startIdx + PAGE_SIZE, matches.length);
+  const paginatedMatches = matches.slice(startIdx, endIdx);
+
   if(loading) return <div className='p-8 text-center'>Loading...</div>;
   return (
     <div className='max-w-5xl mx-auto p-4 bg-[#FFFBEB] min-h-screen'>
       <div className='flex justify-between mb-4'><button onClick={()=>router.push('/account')} className='border bg-white px-4 py-2 rounded-full'>Back to Account</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
-      {myProfiles.length>0 && (<div className='bg-white border-2 border-blue-200 p-3 rounded-xl mb-4'><div className='font-bold mb-2'>Switch Active Profile: ({myProfiles.length}/{isAdmin?'∞':2}) {isAdmin?`👑 Admin ${myEmail} ` :myEmail} ඔබේ profile එක තෝරන්න</div><div className='flex gap-2 flex-wrap'>{myProfiles.map((p:any)=>(<button key={p.id} onClick={()=>load(p.id)} className={`px-4 py-2 rounded-full border font-bold ${currentProfile?.id===p.id?'bg-blue-600 text-white':'bg-white'}`}>{p.name||p.full_name} - {p.age}y {currentProfile?.id===p.id?' (Active)':''} {p.subscription_status} {p.is_visible===false?' (Hidden)':''} {p.religion? `(${p.religion})`:''}</button>))}</div></div>)}
-      {currentProfile && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{currentProfile.name||currentProfile.full_name} (වයස {currentProfile.age}y - {currentProfile.religion||'Any'} - {currentProfile.living_city||currentProfile.current_city} {currentProfile.is_private? '🔒 Private':''} | Status: {currentProfile.subscription_status}) ට ලැබෙන ඉහලම ගැලපීම්</div><div className='text-xs mt-1'>{currentProfile.name||currentProfile.full_name} බලාපොරොත්තු වන්නේ: Age {currentProfile.expectation_age_min}-{currentProfile.expectation_age_max} | Height {currentProfile.expectation_height_min}-{currentProfile.expectation_height_max} | Religion {currentProfile.expectation_religion||'Any'} | District {currentProfile.expectation_district||'Any'} | Caste {currentProfile.expectation_caste||'Any'} | Job {currentProfile.expectation_job||'Any'}</div></div>}
-      <h1 className='text-xl font-bold mb-4'>Top Matches ({matches.length})</h1>
-      <div className='grid gap-4'>{matches.map((p:any)=>{
+      {myProfiles.length>0 && (<div className='bg-white border-2 border-blue-200 p-3 rounded-xl mb-4'><div className='font-bold mb-2'>Switch Active Profile: ({myProfiles.length}/{isAdmin?'∞':2}) {isAdmin?`👑 Admin ${myEmail} ` :myEmail} ඔබේ profile එක තෝරන්න</div><div className='flex gap-2 flex-wrap'>{myProfiles.map((p:any)=>(<button key={p.id} onClick={()=>load(p.id)} className={`px-4 py-2 rounded-full border font-bold ${currentProfile?.id===p.id?'bg-blue-600 text-white':'bg-white'}`}>{p.name||p.full_name} - {currentProfile?.id===p.id?' (Active)':''} {p.subscription_status} {p.is_visible===false?' (Hidden)':''}</button>))}</div></div>)}
+      {currentProfile && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{currentProfile.name||currentProfile.full_name} (වයස {currentProfile.age}y - {currentProfile.religion||'Any'} - {currentProfile.living_city||currentProfile.current_city} {currentProfile.is_private? '🔒 Private':''} | Status: {currentProfile.subscription_status}) ට ලැබෙන ඉහලම ගැලපීම්</div><div className='text-xs mt-1'>{currentProfile.name||currentProfile.full_name} බලාපොරොත්තු වන්නේ: Age {currentProfile.expectation_age_min}-{currentProfile.expectation_age_max} | Height {currentProfile.expectation_height_min}-{currentProfile.expectation_height_max} | Religion {currentProfile.expectation_religion||'Any'} | Education {currentProfile.expectation_education||'Any'} | District {currentProfile.expectation_district||'Any'} | Caste {currentProfile.expectation_caste||'Any'} | Job {currentProfile.expectation_job||'Any'}</div></div>}
+      
+      <div className='flex justify-between items-center mb-2'>
+        <h1 className='text-xl font-bold'>Top Matches ({matches.length}) - Highest 10 First</h1>
+        <div className='text-xs bg-white border px-3 py-1 rounded-full'>Page {page} of {totalPages} | Showing {matches.length>0? startIdx+1:0}-{endIdx} of {matches.length}</div>
+      </div>
+
+      <div className='grid gap-4'>{paginatedMatches.map((p:any)=>{
         const photo=p.main_photo_url||p.photo_urls?.[0];
         const interestStatus=p._interestStatus||'none';
         const viewerIsPaid = currentProfile && isProfileActive(currentProfile) && currentProfile.subscription_status!=='pending_payment';
@@ -163,8 +193,32 @@ export default function MatchesPage(){
         const isPrivatePhoto = shouldBlurPhoto;
         const bd=p.breakdown;
         return (
-        <div key={p.id} className='border rounded-xl p-4 bg-white shadow'><div className='flex gap-3'><div className='w-16 h-16 flex-shrink-0 relative overflow-hidden rounded-lg bg-gray-100'>{photo? (<><img src={photo} className='w-full h-full object-cover rounded-lg' style={{filter:isPrivatePhoto?'blur(14px) brightness(0.9)':'none'}}/>{isPrivatePhoto&&(<div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-sm">🔒</span><span className="bg-white/90 px-1 rounded-full font-bold text-black">Blur</span></div>)}</>):(<div className='w-full h-full bg-gray-200 rounded-lg flex items-center justify-center'><span>👤</span></div>)}</div><div className='flex-1'><div className='font-bold flex gap-2 items-center'>{p.name||p.full_name} - {p.age}y ({p.height_cm||p.height||'?'}cm) - {p.living_city||p.current_city||p.birth_city} - {p.job} - {p.religion||'Any'} {p.is_private&&<span className='text-xs bg-red-100 px-2 py-0.5 rounded-full'>🔒 Private</span>} {isAccepted&&<span className='text-xs bg-green-100 px-2 rounded-full'>Accepted</span>}</div><div className='text-xs text-gray-600 mt-1'>DOB: {p.birth_date||p.dob} | Religion: {p.religion||'Any'} | Caste: {p.caste} | Edu: {p.education||p.education_level||'-'} | {p.porondam?.total}/20 ({p.porondam?.percent}%) | Wants Age {p.expectation_age_min||'?'}-{p.expectation_age_max||'?'} | Ht {p.expectation_height_min||'?'}-{p.expectation_height_max||'?'}</div>
-        {bd&&(<div className='mt-2 bg-gray-50 border rounded-lg p-2'><div className='grid grid-cols-3 md:grid-cols-7 gap-2 text-xs'><div className={`p-2 rounded text-center border ${scoreColor(bd.porondamScore)}`}><div className='font-bold'>Porondam 40</div><div>{bd.porondamScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.ageScore)}`}><div className='font-bold'>Age 20</div><div>{bd.ageScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.districtScore)}`}><div className='font-bold'>Living 10</div><div>{bd.districtScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.religionScore)}`}><div className='font-bold'>Religion 10</div><div>{bd.religionScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.casteScore)}`}><div className='font-bold'>Caste 10</div><div>{bd.casteScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.jobScore)}`}><div className='font-bold'>Job 5</div><div>{bd.jobScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.heightScore)}`}><div className='font-bold'>Height 5</div><div>{bd.heightScore}%</div></div></div></div>)}</div><div className='text-right ml-2'><div className='text-2xl font-bold text-blue-600'>{p.match_score}%</div><Link href={`/profile/${p.id}`} className='text-blue-600 underline text-sm mt-2 inline-block'>{isPrivatePhoto?'Request View':'view'}</Link></div></div></div>); })}</div>
+        <div key={p.id} className='border rounded-xl p-4 bg-white shadow'><div className='flex gap-3'><div className='w-16 h-16 flex-shrink-0 relative overflow-hidden rounded-lg bg-gray-100'>{photo? (<><img src={photo} className='w-full h-full object-cover rounded-lg' style={{filter:isPrivatePhoto?'blur(14px) brightness(0.9)':'none'}}/>{isPrivatePhoto&&(<div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-sm">🔒</span><span className="bg-white/90 px-1 rounded-full font-bold text-black">Blur</span></div>)}</>):(<div className='w-full h-full bg-gray-200 rounded-lg flex items-center justify-center'><span>👤</span></div>)}</div><div className='flex-1'><div className='font-bold flex gap-2 items-center'>{p.name||p.full_name} - {p.age}y ({p.height_cm||p.height||'?'}cm) - {p.living_city||p.current_city||p.birth_city} - {p.job} - {p.religion||'Any'} {p.is_private&&<span className='text-xs bg-red-100 px-2 py-0.5 rounded-full'>🔒 Private</span>} {isAccepted&&<span className='text-xs bg-green-100 px-2 rounded-full'>Accepted</span>}</div><div className='text-xs text-gray-600 mt-1'>DOB: {p.birth_date||p.dob} | Religion: {p.religion||'Any'} | Caste: {p.caste} | Edu: {p.education||p.education_level||'-'} (Wants {p.expectation_education||'Any'}) | {p.porondam?.total}/20 ({p.porondam?.percent}%) | Wants Age {p.expectation_age_min||'?'}-{p.expectation_age_max||'?'} | Ht {p.expectation_height_min||'?'}-{p.expectation_height_max||'?'}</div>
+        {bd&&(<div className='mt-2 bg-gray-50 border rounded-lg p-2'><div className='grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs'><div className={`p-2 rounded text-center border ${scoreColor(bd.porondamScore)}`}><div className='font-bold'>Porondam 30</div><div>{bd.porondamScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.ageScore)}`}><div className='font-bold'>Age 20</div><div>{bd.ageScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.religionScore)}`}><div className='font-bold'>Religion 10</div><div>{bd.religionScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.educationScore)}`}><div className='font-bold'>Education 10</div><div>{bd.educationScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.casteScore)}`}><div className='font-bold'>Caste 10</div><div>{bd.casteScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.jobScore)}`}><div className='font-bold'>Job 10</div><div>{bd.jobScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.districtScore)}`}><div className='font-bold'>Living 5</div><div>{bd.districtScore}%</div></div><div className={`p-2 rounded text-center border ${scoreColor(bd.heightScore)}`}><div className='font-bold'>Height 5</div><div>{bd.heightScore}%</div></div></div><div className='text-[10px] text-gray-500 mt-1 text-center'>Porondam 30 + Age 20 + Religion 10 + Education 10 + Caste 10 + Job 10 + Living 5 + Height 5 = 100</div></div>)}</div><div className='text-right ml-2'><div className='text-2xl font-bold text-blue-600'>{p.match_score}%</div><Link href={`/profile/${p.id}`} className='text-blue-600 underline text-sm mt-2 inline-block'>{isPrivatePhoto?'Request View':'view'}</Link></div></div></div>); })}</div>
+
+      {/* NEW: Back left, Next/Load More right */}
+      <div className='flex justify-between items-center mt-6 bg-white border rounded-full p-2 shadow'>
+        <button 
+          disabled={page<=1}
+          onClick={()=>{ if(page>1){ setPage(p=>p-1); window.scrollTo({top:0, behavior:'smooth'}); } }}
+          className={`px-6 py-2 rounded-full font-bold text-sm ${page<=1?'bg-gray-200 text-gray-400':'bg-gray-100 border hover:bg-gray-200'}`}
+        >
+          ← Back
+        </button>
+        <div className='text-xs font-bold'>
+          {paginatedMatches.length>0? `Showing Top ${startIdx+1}-${endIdx} of ${matches.length}` : 'No matches'} 
+          <span className='ml-2 opacity-60'>Page {page}/{totalPages}</span>
+        </div>
+        <button 
+          disabled={page>=totalPages}
+          onClick={()=>{ if(page<totalPages){ setPage(p=>p+1); window.scrollTo({top:0, behavior:'smooth'}); } }}
+          className={`px-6 py-2 rounded-full font-bold text-sm ${page>=totalPages?'bg-gray-200 text-gray-400':'bg-[#7B1F2A] text-white hover:bg-[#5a1620]'}`}
+        >
+          {page>=totalPages? 'No More' : 'Next → / Load More'}
+        </button>
+      </div>
+
+      <div className='mt-3 text-[11px] text-gray-500 text-center'>Top 10 highest scored first, then next 10... Education included in 100-mark system</div>
     </div>
   );
 }

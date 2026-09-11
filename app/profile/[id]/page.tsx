@@ -19,18 +19,18 @@ const PORONDAM_20=[
   {id:3,name_si:'යෝනි',name_en:'Yoni',desc:'Animal'},
   {id:4,name_si:'රාශි',name_en:'Rashi',desc:'Zodiac'},
   {id:5,name_si:'රාශි අධිපති',name_en:'Rashi Adhipathi',desc:'Lord'},
-  {id:6,name_si:'වශ්‍ය',name_en:'Vashya',desc:'Attraction'},
+  {id:6,name_si:'වශ්ය',name_en:'Vashya',desc:'Attraction'},
   {id:7,name_si:'දින',name_en:'Dina',desc:'Day'},
-  {id:8,name_si:'මහේන්ද්‍ර',name_en:'Mahendra',desc:'Longevity'},
-  {id:9,name_si:'ස්ත්‍රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
+  {id:8,name_si:'මහේන්ද්ර',name_en:'Mahendra',desc:'Longevity'},
+  {id:9,name_si:'ස්ත්රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
   {id:10,name_si:'වෘක්ෂ',name_en:'Vruksha',desc:'Tree'},
   {id:11,name_si:'රජ්ජු',name_en:'Rajju',desc:'Bond'},
   {id:12,name_si:'වේධ',name_en:'Vedha',desc:'Obstruction'},
   {id:13,name_si:'වර්ණ',name_en:'Varna',desc:'Caste'},
   {id:14,name_si:'නාඩි',name_en:'Nadi',desc:'Health'},
-  {id:15,name_si:'ග්‍රහ මෛත්‍රී',name_en:'Graha Maitri',desc:'Planet'},
+  {id:15,name_si:'ග්රහ මෛත්රී',name_en:'Graha Maitri',desc:'Planet'},
   {id:16,name_si:'භූත',name_en:'Bhootha',desc:'Element'},
-  {id:17,name_si:'ගෝත්‍ර',name_en:'Gothra',desc:'Clan'},
+  {id:17,name_si:'ගෝත්ර',name_en:'Gothra',desc:'Clan'},
   {id:18,name_si:'ලිංග',name_en:'Linga',desc:'Gender'},
   {id:19,name_si:'පක්ෂි',name_en:'Pakshi',desc:'Bird'},
   {id:20,name_si:'ආයු',name_en:'Ayu',desc:'Age'},
@@ -43,14 +43,14 @@ function scoreColor(s:number){
   return 'bg-red-100 border-red-200 text-red-800';
 }
 function getPorondamScore(a:any,b:any){
-  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්‍ය නැත'})), total:20, percent:100, note:'අවශ්‍ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
+  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්ය නැත'})), total:20, percent:100, note:'අවශ්ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   if(!a.birth_date||!b.birth_date) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:0,max:1,match:false,details:'දත්ත අඩුයි'})), total:0, percent:0, note:'දත්ත අඩුයි', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   const real = calculateRealPorondam(a,b);
   const list = real.details.map((d:any)=>({...d, score:d.obtained, name_si:d.name_si, name_en:d.name_en}));
   return { list, total:real.total, percent:Math.round(real.total/20*100), note: `${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`, debug:real.debug, lagnaA:real.lagnaA, lagnaB:real.lagnaB, isRajjuFail:real.isRajjuFail };
 }
 
-// --- MUTUAL LOGIC FOR AGE/HEIGHT (range) + LIVING/RELIGION/CASTE/JOB (exact) ---
+// --- MUTUAL LOGIC FOR AGE/HEIGHT (range) + LIVING/RELIGION/CASTE/JOB/EDUCATION (exact) ---
 function inRange(val:any, min:any, max:any){
   if(val==null) return false;
   if(min==null || min==='Any' || min==='' ) min = -9999;
@@ -117,8 +117,18 @@ function calculateMatchingBreakdown(viewer:any, candidate:any){
   const condRel2 = isAny(candidate.expectation_religion) || matchesExact(candidate.expectation_religion, viewer.religion);
   let religionScore = condRel1 && condRel2? 100 : condRel1 &&!condRel2? 70 :!condRel1 && condRel2? 40 : 10;
 
+  // NEW: Education - same marking system as job/living etc.
+  const condEdu1 = isAny(viewer.expectation_education) || matchesExact(viewer.expectation_education, candidate.education) || matchesExact(viewer.expectation_education, candidate.education_level);
+  const condEdu2 = isAny(candidate.expectation_education) || matchesExact(candidate.expectation_education, viewer.education) || matchesExact(candidate.expectation_education, viewer.education_level);
+  let educationScore = condEdu1 && condEdu2? 100 : condEdu1 &&!condEdu2? 70 :!condEdu1 && condEdu2? 40 : 10;
+
   const porData=getPorondamScore(viewer,candidate);
-  return { ageScore, heightScore, districtScore, religionScore, jobScore, casteScore, porondamScore:porData.percent, porondamDetail:porData, total:Math.round(porData.percent*0.40+ageScore*0.20+districtScore*0.10+religionScore*0.10+casteScore*0.10+jobScore*0.05+heightScore*0.05) };
+  return { 
+    ageScore, heightScore, districtScore, religionScore, jobScore, casteScore, educationScore, 
+    porondamScore:porData.percent, porondamDetail:porData, 
+    // NEW 100-mark system: Porondam 30, Age 20, Religion 10, Education 10, Caste 10, Job 10, Living 5, Height 5
+    total:Math.round(porData.percent*0.30+ageScore*0.20+religionScore*0.10+educationScore*0.10+casteScore*0.10+jobScore*0.10+districtScore*0.05+heightScore*0.05) 
+  };
 }
 
 export default function Page(){
@@ -282,7 +292,7 @@ export default function Page(){
             <div className='font-bold mb-1'>Expectations</div>
             <div>Age: {profile.expectation_age_min||18} - {profile.expectation_age_max||60}</div>
             <div>Height: {profile.expectation_height_min||'-'} - {profile.expectation_height_max||'-'} cm</div>
-            <div>District: {profile.expectation_district || 'Any'} | Job: {profile.expectation_job || 'Any'} | Caste: {profile.expectation_caste || 'Any'} | Religion: {profile.expectation_religion || 'Any'}</div>
+            <div>District: {profile.expectation_district || 'Any'} | Job: {profile.expectation_job || 'Any'} | Caste: {profile.expectation_caste || 'Any'} | Religion: {profile.expectation_religion || 'Any'} | Education: {profile.expectation_education || 'Any'}</div>
           </div>
 
           <div className='mt-4 flex gap-2'>
@@ -295,7 +305,7 @@ export default function Page(){
   }
 
   const displayPorondam = porondam || getPorondamScore(cur || { birth_date:'1990-01-01', birth_district_si:'Colombo', horoscope_required:true }, profile);
-  const displayBreakdown = breakdown || calculateMatchingBreakdown(cur || { expectation_age_min:18, expectation_age_max:60, expectation_height_min:140, expectation_height_max:200, expectation_district:'Any', expectation_job:'Any', expectation_caste:'Any', expectation_religion:'Any', birth_date:'1990-01-01', birth_district_si:'Colombo', horoscope_required:true }, profile);
+  const displayBreakdown = breakdown || calculateMatchingBreakdown(cur || { expectation_age_min:18, expectation_age_max:60, expectation_height_min:140, expectation_height_max:200, expectation_district:'Any', expectation_job:'Any', expectation_caste:'Any', expectation_religion:'Any', expectation_education:'Any', birth_date:'1990-01-01', birth_district_si:'Colombo', horoscope_required:true }, profile);
 
   return (
     <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen' style={{fontFamily: "'Noto Sans Sinhala', sans-serif"}}>
@@ -304,7 +314,7 @@ export default function Page(){
       <div className='bg-white border rounded-2xl p-6 shadow'>
         <div className='flex gap-4'>
           <div className='w-32 h-32 relative overflow-hidden rounded-xl bg-gray-100 border-2 flex-shrink-0'>{main? <><img src={main} className='w-full h-full object-cover' style={{filter: isPrivatePhoto?'blur(16px)':''}} />{isPrivatePhoto && <div className='absolute inset-0 flex items-center justify-center bg-black/30 text-white font-bold'>Locked</div>}</> : <div className='w-full h-full bg-gray-200 flex items-center justify-center'>User</div>}</div>
-          <div><h1 className='text-2xl font-bold'>{profile.full_name}</h1><div className='text-sm'>{profile.age} අවුරුදු {profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''}</div><div className='mt-2 text-lg font-bold text-blue-600'>මුළු ගැලපීම: {displayBreakdown?.total}% (සියලු කරුණු සැලකීමෙන්)</div></div>
+          <div><h1 className='text-2xl font-bold'>{profile.full_name}</h1><div className='text-sm'>{profile.age} අවුරුදු {profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''} | බලාපොරොත්තු අධ්‍යාපනය: {profile.expectation_education||'Any'}</div><div className='mt-2 text-lg font-bold text-blue-600'>මුළු ගැලපීම: {displayBreakdown?.total}% (සියලු කරුණු සැලකීමෙන්)</div></div>
         </div>
 
         <div className='mt-4 bg-amber-50 border-2 border-amber-200 p-4 rounded-xl text-sm'>
@@ -323,24 +333,26 @@ export default function Page(){
           <div className='bg-purple-50 border p-3 rounded-xl'>
             <div className='font-bold mb-1'>Looking For - බලාපොරොත්තු වන</div>
             <div>Age: {profile.expectation_age_min||18}-{profile.expectation_age_max||60} | Height: {profile.expectation_height_min||'-'}-{profile.expectation_height_max||'-'}</div>
-            <div>District: {profile.expectation_district||'Any'} | Job: {profile.expectation_job||'Any'} | Caste: {profile.expectation_caste||'Any'} | Religion: {profile.expectation_religion||'Any'} | Horoscope Required: {profile.horoscope_required? 'Yes':'No'}</div>
+            <div>District: {profile.expectation_district||'Any'} | Job: {profile.expectation_job||'Any'} | Caste: {profile.expectation_caste||'Any'} | Religion: {profile.expectation_religion||'Any'} | Education: {profile.expectation_education||'Any'} | Horoscope Required: {profile.horoscope_required? 'Yes':'No'}</div>
           </div>
         </div>
 
         <div className='mt-4 bg-gray-50 border-2 border-blue-300 rounded-xl p-3'>
-          <div className='font-bold text-sm mb-2'>🔥 Matching Breakdown ගැලපීම් සඳහා ලබාගත හැකි උපරිම ලකුණු සහ ඉන් ලැබුණු ප්‍රතිශත</div>
-          <div className='grid grid-cols-3 md:grid-cols-7 gap-2 text-xs'>
-            <div className={'p-2 rounded text-center border-2 '+scoreColor(displayBreakdown.porondamScore)}><div className='font-bold'>Porondam (40)</div><div className='text-lg'>{displayBreakdown.porondamScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.ageScore)}><div className='font-bold'>Age (20)</div><div>{displayBreakdown.ageScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.districtScore)}><div className='font-bold'>Living (10)</div><div>{displayBreakdown.districtScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.religionScore)}><div className='font-bold'>Religion (10)</div><div>{displayBreakdown.religionScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.casteScore)}><div className='font-bold'>Caste (10)</div><div>{displayBreakdown.casteScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.jobScore)}><div className='font-bold'>Job (5)</div><div>{displayBreakdown.jobScore}%</div></div>
-            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.heightScore)}><div className='font-bold'>Height (5)</div><div>{displayBreakdown.heightScore}%</div></div>
+          <div className='font-bold text-sm mb-2'>🔥 Matching Breakdown ගැලපීම් සඳහා ලබාගත හැකි උපරිම ලකුණු සහ ඒ සඳහා ලැබුණු ප්‍රතිශත</div>
+          <div className='grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs'>
+            <div className={'p-2 rounded text-center border-2 '+scoreColor(displayBreakdown.porondamScore)}><div className='font-bold'>Porondam 30</div><div className='text-lg'>{displayBreakdown.porondamScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.ageScore)}><div className='font-bold'>Age 20</div><div>{displayBreakdown.ageScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.religionScore)}><div className='font-bold'>Religion 10</div><div>{displayBreakdown.religionScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.educationScore)}><div className='font-bold'>Education 10</div><div>{displayBreakdown.educationScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.casteScore)}><div className='font-bold'>Caste 10</div><div>{displayBreakdown.casteScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.jobScore)}><div className='font-bold'>Job 10</div><div>{displayBreakdown.jobScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.districtScore)}><div className='font-bold'>Living 5</div><div>{displayBreakdown.districtScore}%</div></div>
+            <div className={'p-2 rounded text-center border '+scoreColor(displayBreakdown.heightScore)}><div className='font-bold'>Height 5</div><div>{displayBreakdown.heightScore}%</div></div>
           </div>
+          <div className='text-[10px] text-gray-500 mt-2 text-center'>Porondam 30 + Age 20 + Religion 10 + Education 10 + Caste 10 + Job 10 + Living 5 + Height 5 = 100</div>
         </div>
         <div className='mt-6 border-t pt-4'>
-          <h2 className='font-bold text-lg mb-2'>පොරොන්දම් 20 (සැබෑ චන්ද්‍ර නැකැත් සහ ලග්න)</h2>
+          <h2 className='font-bold text-lg mb-2'>පොරොන්දම් 20 (චන්ද්‍ර නැකැත් සහ ලග්න)</h2>
 {displayPorondam.debug && (
   <div className='bg-indigo-50 border-2 border-indigo-300 p-3 rounded-xl mb-3 text-sm'>
     <div className='font-bold'>🔭 (Lahiri Ayanamsa) - District lat/long used</div>
