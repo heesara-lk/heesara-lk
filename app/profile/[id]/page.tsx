@@ -12,7 +12,6 @@ const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
 function isAdminEmail(email?:string|null){ if(!email) return false; const low=email.toLowerCase(); const norm=normalizeEmail(email); return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm); }
 
-
 const PORONDAM_20=[
   {id:1,name_si:'නැකත',name_en:'Nakatha',desc:'Stars'},
   {id:2,name_si:'ගණ',name_en:'Gana',desc:'Character'},
@@ -50,7 +49,6 @@ function getPorondamScore(a:any,b:any){
   return { list, total:real.total, percent:Math.round(real.total/20*100), note: `${real.debug.nakSiA} vs ${real.debug.nakSiB} | Lagna ${real.lagnaA.nameSi} ${real.lagnaA.deg}° vs ${real.lagnaB.nameSi} ${real.lagnaB.deg}° | Chandra ${real.debug.rashiSiA} vs ${real.debug.rashiSiB}`, debug:real.debug, lagnaA:real.lagnaA, lagnaB:real.lagnaB, isRajjuFail:real.isRajjuFail };
 }
 
-// --- MUTUAL LOGIC FOR AGE/HEIGHT (range) + LIVING/RELIGION/CASTE/JOB/EDUCATION (exact) ---
 function inRange(val:any, min:any, max:any){
   if(val==null) return false;
   if(min==null || min==='Any' || min==='' ) min = -9999;
@@ -79,21 +77,10 @@ function matchesExact(exp:any, real:any){
   if(isAny(real)) return false;
   return exp===real;
 }
-function mutualScoreExact(x:any, y:any, a:any, b:any, isDistrict=false){
-  const cond1 = isDistrict? matchesDistrict(a, {living_city:y, current_city:y, birth_city:y, living_district_si:y, current_district_si:y, birth_district_si:y, district:y} as any) || matchesExact(a,y) : matchesExact(a,y);
-  const cond2 = isDistrict? matchesDistrict(b, {living_city:x, current_city:x, birth_city:x, living_district_si:x, current_district_si:x, birth_district_si:x, district:x} as any) || matchesExact(b,x) : matchesExact(b,x);
-  // For district we need to check profile objects, so we handle separately below
-  if(cond1 && cond2) return 100;
-  if(cond1 &&!cond2) return 70;
-  if(!cond1 && cond2) return 40;
-  return 10;
-}
 
 function calculateMatchingBreakdown(viewer:any, candidate:any){
   const ageScore = mutualScoreRange(viewer.age, candidate.age, viewer.expectation_age_min, viewer.expectation_age_max, candidate.expectation_age_min, candidate.expectation_age_max);
   const heightScore = mutualScoreRange(viewer.height_cm||viewer.height, candidate.height_cm||candidate.height, viewer.expectation_height_min, viewer.expectation_height_max, candidate.expectation_height_min, candidate.expectation_height_max);
-
-  // Living: a = viewer.expectation_district, x = viewer living, b = candidate expectation, y = candidate living
   const viewerLiving = viewer.living_city||viewer.current_city||viewer.living_district_si||viewer.current_district_si||viewer.district||'';
   const candLiving = candidate.living_city||candidate.current_city||candidate.birth_city||candidate.living_district_si||candidate.current_district_si||candidate.birth_district_si||candidate.district||'';
   const expDistViewer = viewer.expectation_district||'Any';
@@ -101,32 +88,22 @@ function calculateMatchingBreakdown(viewer:any, candidate:any){
   const condDist1 = isAny(expDistViewer) || matchesDistrict(expDistViewer, candidate);
   const condDist2 = isAny(expDistCand) || matchesDistrict(expDistCand, viewer);
   let districtScore = condDist1 && condDist2? 100 : condDist1 &&!condDist2? 70 :!condDist1 && condDist2? 40 : 10;
-
-  // Job: a=viewer.expectation_job, x=viewer.job, b=candidate.expectation_job, y=candidate.job
   const condJob1 = isAny(viewer.expectation_job) || matchesExact(viewer.expectation_job, candidate.job);
   const condJob2 = isAny(candidate.expectation_job) || matchesExact(candidate.expectation_job, viewer.job);
   let jobScore = condJob1 && condJob2? 100 : condJob1 &&!condJob2? 70 :!condJob1 && condJob2? 40 : 10;
-
-  // Caste
   const condCaste1 = isAny(viewer.expectation_caste) || matchesExact(viewer.expectation_caste, candidate.caste);
   const condCaste2 = isAny(candidate.expectation_caste) || matchesExact(candidate.expectation_caste, viewer.caste);
   let casteScore = condCaste1 && condCaste2? 100 : condCaste1 &&!condCaste2? 70 :!condCaste1 && condCaste2? 40 : 10;
-
-  // Religion
   const condRel1 = isAny(viewer.expectation_religion) || matchesExact(viewer.expectation_religion, candidate.religion);
   const condRel2 = isAny(candidate.expectation_religion) || matchesExact(candidate.expectation_religion, viewer.religion);
   let religionScore = condRel1 && condRel2? 100 : condRel1 &&!condRel2? 70 :!condRel1 && condRel2? 40 : 10;
-
-  // NEW: Education - same marking system as job/living etc.
   const condEdu1 = isAny(viewer.expectation_education) || matchesExact(viewer.expectation_education, candidate.education) || matchesExact(viewer.expectation_education, candidate.education_level);
   const condEdu2 = isAny(candidate.expectation_education) || matchesExact(candidate.expectation_education, viewer.education) || matchesExact(candidate.expectation_education, viewer.education_level);
   let educationScore = condEdu1 && condEdu2? 100 : condEdu1 &&!condEdu2? 70 :!condEdu1 && condEdu2? 40 : 10;
-
   const porData=getPorondamScore(viewer,candidate);
   return { 
     ageScore, heightScore, districtScore, religionScore, jobScore, casteScore, educationScore, 
     porondamScore:porData.percent, porondamDetail:porData, 
-    // NEW 100-mark system: Porondam 30, Age 20, Religion 10, Education 10, Caste 10, Job 10, Living 5, Height 5
     total:Math.round(porData.percent*0.30+ageScore*0.20+religionScore*0.10+educationScore*0.10+casteScore*0.10+jobScore*0.10+districtScore*0.05+heightScore*0.05) 
   };
 }
@@ -143,6 +120,8 @@ export default function Page(){
   const [myIds,setMyIds]=useState<string[]>([]);
   const [authUid,setAuthUid]=useState('');
   const [contact,setContact]=useState<any>(null);
+  const [reporting,setReporting]=useState(false);
+  const [adminVerifying,setAdminVerifying]=useState(false);
 
   useEffect(()=>{ (async()=>{
     const {data:{user}} = await supabase.auth.getUser();
@@ -186,6 +165,12 @@ export default function Page(){
         alert(`🔒 ${cur.full_name} is ${cur.subscription_status} - Please pay Rs.${renewalPrice} to send interests`);
         router.push('/account'); return;
     }
+    // NEW: Check viewer verification
+    const viewerVer = (cur as any).verification_status || 'verified';
+    if(viewerVer !== 'verified' && !isAdmin){
+      alert(`🔒 Your profile is ${viewerVer} - Guardian verification pending. Admin must verify your guardian contact ${cur.guardian_contact} before you can send interests.`);
+      return;
+    }
     const {data, error} = await supabase.from('interests').insert({
       sender_profile_id: cur.id, receiver_profile_id: profile.id,
       sender_user_id: cur.user_id, receiver_user_id: profile.user_id, status:'sent'
@@ -217,6 +202,50 @@ export default function Page(){
     if(error){ alert('Pay order error: '+error.message); return; } router.push(`/pay/${order.id}`);
   };
 
+  const handleReport = async () => {
+    if(!cur || !profile) return;
+    if(!confirm('Report this profile for spam / fun message? 3 reports will auto hide profile.')) return;
+    setReporting(true);
+    try{
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('reports').insert({
+        reported_profile_id: profile.id,
+        reporter_profile_id: cur.id,
+        reason: 'fun message / spam'
+      });
+      const newCount = (profile.report_count || 0) + 1;
+      let newStatus = profile.verification_status;
+      if(newCount >= 3) newStatus = 'blocked';
+      await supabase.from('profiles').update({ report_count: newCount, verification_status: newStatus }).eq('id', profile.id);
+      alert(newCount >=3 ? `Reported! Profile now blocked (3 reports) - admin will review.` : `Reported! Count ${newCount}/3`);
+      setProfile({...profile, report_count: newCount, verification_status: newStatus});
+    }catch(e:any){ alert('Report error: '+e.message); }
+    setReporting(false);
+  };
+
+  const handleAdminVerify = async () => {
+    if(!profile) return;
+    if(!confirm(`Verify guardian ${profile.guardian_contact} (${profile.guardian_relationship}) and release?`)) return;
+    setAdminVerifying(true);
+    try{
+      await supabase.from('profiles').update({
+        verification_status: 'verified',
+        guardian_verified: true,
+        verified_badge: true,
+        report_count: 0
+      }).eq('id', profile.id);
+      alert('✅ Verified and released! Contacts now visible.');
+      setProfile({...profile, verification_status:'verified', guardian_verified:true, verified_badge:true, report_count:0});
+    }catch(e:any){ alert(e.message); }
+    setAdminVerifying(false);
+  };
+
+  const handleAdminBlock = async () => {
+    if(!confirm('Block this profile?')) return;
+    await supabase.from('profiles').update({ verification_status: 'blocked' }).eq('id', profile.id);
+    setProfile({...profile, verification_status:'blocked'});
+  };
+
   if(loading) return <div className='p-8 text-center'>Loading...</div>;
   if(!profile) return <div className='p-8 text-center'>Not found {id}</div>;
 
@@ -228,11 +257,34 @@ export default function Page(){
   const viewerIsPaid = cur && isProfileActive(cur) && cur.subscription_status!=='pending_payment';
   const candidateIsPaid = profile && isProfileActive(profile) && profile.subscription_status!=='pending_payment';
   const isAccepted = interestStatus==='accepted';
-  const canUnlock = isAdmin || isMyProfile || (isAccepted && viewerIsPaid && candidateIsPaid);
+
+  // NEW: Verification checks - backward compatible (null = verified for old profiles)
+  const candidateVerStatus = profile.verification_status || 'verified';
+  const candidateGuardianVerified = profile.guardian_verified ?? (candidateVerStatus==='verified');
+  const candidateIsVerified = candidateVerStatus==='verified' && candidateGuardianVerified;
+  const candidateIsBlocked = candidateVerStatus==='blocked';
+
+  const viewerVerStatus = cur ? (cur.verification_status || 'verified') : 'verified';
+  const viewerGuardianVerified = cur ? (cur.guardian_verified ?? (viewerVerStatus==='verified')) : true;
+  const viewerIsVerified = viewerVerStatus==='verified' && viewerGuardianVerified;
+
+  const canUnlock = isAdmin || isMyProfile || (isAccepted && viewerIsPaid && candidateIsPaid && candidateIsVerified && viewerIsVerified);
   const canSeeContact = canUnlock;
   const shouldBlur = (profile.photo_blur || profile.photo_privacy==='blur' || profile.photo_privacy===true) &&!canUnlock;
   const isPrivatePhoto = shouldBlur;
   const isPrivateProfile = profile.is_private &&!isMyProfile &&!isAdmin;
+
+  if(candidateIsBlocked && !isAdmin && !isMyProfile){
+    return (
+      <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen'>
+        <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
+        <div className='bg-red-50 border-2 border-red-400 p-8 rounded-2xl text-center'>
+          <h2 className='text-xl font-bold text-red-700'>🚫 Profile Blocked for Review</h2>
+          <p className='mt-2 text-sm'>This profile reported {profile.report_count}/3 times for spam/fun messages. Under admin review.</p>
+        </div>
+      </div>
+    );
+  }
 
   if(isPrivateProfile){
     return (
@@ -247,23 +299,21 @@ export default function Page(){
     return (
       <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen'>
         <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
-        <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{isOwn? 'Own Profile' : 'My Other Profile'}: {profile.full_name} - {profile.age}y {isAdmin? ' ADMIN '+myEmail:''} {profile.is_visible===false? ' (Hidden)':''}</div></div>
+        <div className={`border p-3 rounded-xl mb-4 ${candidateVerStatus==='verified' ? 'bg-green-50 border-green-300' : candidateVerStatus==='limited' ? 'bg-yellow-50 border-yellow-400' : candidateVerStatus==='blocked' ? 'bg-red-50 border-red-400' : 'bg-blue-50 border'}`}><div className='font-bold'>{isOwn? 'Own Profile' : 'My Other Profile'}: {profile.full_name} - {profile.age}y {isAdmin? ' ADMIN '+myEmail:''} {profile.is_visible===false? ' (Hidden)':''} | Status: {candidateVerStatus} {profile.guardian_verified ? '✓ Guardian Verified' : '⚠ Guardian Pending'} {profile.verified_badge ? '✓ Verified Badge' : ''}</div><div className='text-xs mt-1'>Guardian: {profile.guardian_contact || '-'} ({profile.guardian_relationship || '-'}) | Fee: {profile.verification_fee_type || '-'} | Reports: {profile.report_count || 0}</div></div>
         <div className='bg-white border rounded-2xl p-6 shadow'>
           <div className='flex gap-4'>
             <div className='w-32 h-32 rounded-xl bg-gray-100 border-2 overflow-hidden'>{main? <img src={main} className='w-full h-full object-cover'/> : <div className='w-full h-full flex items-center justify-center'>User</div>}</div>
             <div>
-              <h1 className='text-2xl font-bold'>{profile.full_name} - {profile.age}y</h1>
+              <h1 className='text-2xl font-bold'>{profile.full_name} - {profile.age}y {profile.verified_badge && <span className='text-green-600 text-sm'>✓ Verified</span>}</h1>
               <div className='text-sm'>Living: {profile.living_city||profile.current_city||profile.birth_city} | {profile.living_district_si||profile.current_district_si} | {profile.job} | {profile.religion||'Any'} | {profile.caste}</div>
               <div className='text-sm mt-1'>Phone: {contact?.phone || profile.phone || '-'} | Email: {contact?.email || profile.email || profile.email_contact || '-'}</div>
-              <div className='text-xs mt-1'>Status: {profile.subscription_status} | {expiry?.message} | {profile.is_visible===false? 'Hidden from Search': 'Visible'}</div>
+              <div className='text-xs mt-1'>Status: {profile.subscription_status} | {expiry?.message} | {profile.is_visible===false? 'Hidden from Search': 'Visible'} | DOB Original: {profile.dob_original || profile.dob || '-'} | Time edits: {profile.time_edit_count || 0}</div>
             </div>
           </div>
-
           <div className='mt-4 bg-amber-50 border-2 border-amber-200 p-4 rounded-xl text-sm'>
             <div className='font-bold text-base mb-1'>About / Bio</div>
             <div>{profile.bio || profile.about || 'No bio - Add bio in Edit Profile'}</div>
           </div>
-
           <div className='mt-3 grid md:grid-cols-2 gap-3 text-sm'>
             <div className='bg-gray-50 border p-3 rounded-xl'>
               <div className='font-bold mb-1'>Personal Details</div>
@@ -281,20 +331,17 @@ export default function Page(){
               <div>Marital: {profile.marital_status || '-'}</div>
             </div>
           </div>
-
           <div className='mt-3 bg-blue-50 border p-3 rounded-xl text-sm'>
             <div className='font-bold mb-1'>Birth / Horoscope Info</div>
             <div>Birth: {profile.birth_date} {profile.birth_time||''} {profile.birth_district_si}</div>
             <div>Horoscope Required: {profile.horoscope_required? 'Yes':'No'}</div>
           </div>
-
           <div className='mt-3 bg-purple-50 border p-3 rounded-xl text-sm'>
             <div className='font-bold mb-1'>Expectations</div>
             <div>Age: {profile.expectation_age_min||18} - {profile.expectation_age_max||60}</div>
             <div>Height: {profile.expectation_height_min||'-'} - {profile.expectation_height_max||'-'} cm</div>
             <div>District: {profile.expectation_district || 'Any'} | Job: {profile.expectation_job || 'Any'} | Caste: {profile.expectation_caste || 'Any'} | Religion: {profile.expectation_religion || 'Any'} | Education: {profile.expectation_education || 'Any'}</div>
           </div>
-
           <div className='mt-4 flex gap-2'>
             <Link href={`/create-profile?edit=${profile.id}`} className='bg-green-600 text-white px-5 py-2 rounded-full text-sm'>Edit Profile / Update</Link>
             <Link href='/account' className='bg-gray-200 px-5 py-2 rounded-full text-sm'>Back to Account</Link>
@@ -310,11 +357,24 @@ export default function Page(){
   return (
     <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen' style={{fontFamily: "'Noto Sans Sinhala', sans-serif"}}>
       <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
-      {cur && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{cur.full_name} බලන්නේ → {profile.full_name} සමග ගැලපීම</div><div className='text-xs'></div>{!canView && <div className='mt-2 bg-red-100 border p-2 rounded-lg text-xs'>🔒 Pending - Pay Rs.{renewalPrice} → <button onClick={handlePay} className='bg-red-600 text-white px-3 py-1 rounded-full ml-2'>Pay Rs.{renewalPrice}</button></div>}</div>}
+      {cur && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{cur.full_name} බලන්නේ → {profile.full_name} සමග ගැලපීම {profile.verified_badge && <span className='bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2'>✓ Verified</span>} {candidateVerStatus!=='verified' && <span className='bg-yellow-500 text-white text-xs px-2 py-1 rounded-full ml-2'>{candidateVerStatus}</span>}</div>{!canView && <div className='mt-2 bg-red-100 border p-2 rounded-lg text-xs'>🔒 Pending - Pay Rs.{renewalPrice} → <button onClick={handlePay} className='bg-red-600 text-white px-3 py-1 rounded-full ml-2'>Pay Rs.{renewalPrice}</button></div>}{!viewerIsVerified && <div className='mt-2 bg-yellow-100 border p-2 rounded-lg text-xs'>⚠ Your profile not verified yet - guardian {cur.guardian_contact} pending. Contacts hidden until admin verifies.</div>}</div>}
+
+      {/* Admin Panel for verification */}
+      {isAdmin && (
+        <div className='bg-yellow-50 border-2 border-yellow-400 p-4 rounded-xl mb-4'>
+          <h3 className='font-bold text-sm'>👑 Admin - Verification Control</h3>
+          <div className='text-xs mt-1'>Status: {candidateVerStatus} | Guardian Verified: {String(profile.guardian_verified)} | Guardian: {profile.guardian_contact} ({profile.guardian_relationship}) | Fee: {profile.verification_fee_type} | Paid: {String(profile.verification_fee_paid)} | Reports: {profile.report_count || 0} | DOB Orig: {profile.dob_original || profile.dob} | Time edits: {profile.time_edit_count || 0}</div>
+          <div className='flex gap-2 mt-2'>
+            {candidateVerStatus!=='verified' && <button disabled={adminVerifying} onClick={handleAdminVerify} className='bg-green-600 text-white px-4 py-2 rounded-full text-xs font-bold'>{adminVerifying? 'Verifying...' : `✅ Verify Guardian ${profile.guardian_contact} & Release`}</button>}
+            {candidateVerStatus!=='blocked' && <button onClick={handleAdminBlock} className='bg-red-600 text-white px-4 py-2 rounded-full text-xs'>🚫 Block</button>}
+          </div>
+        </div>
+      )}
+
       <div className='bg-white border rounded-2xl p-6 shadow'>
         <div className='flex gap-4'>
           <div className='w-32 h-32 relative overflow-hidden rounded-xl bg-gray-100 border-2 flex-shrink-0'>{main? <><img src={main} className='w-full h-full object-cover' style={{filter: isPrivatePhoto?'blur(16px)':''}} />{isPrivatePhoto && <div className='absolute inset-0 flex items-center justify-center bg-black/30 text-white font-bold'>Locked</div>}</> : <div className='w-full h-full bg-gray-200 flex items-center justify-center'>User</div>}</div>
-          <div><h1 className='text-2xl font-bold'>{profile.full_name}</h1><div className='text-sm'>{profile.age} අවුරුදු {profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''} | බලාපොරොත්තු අධ්‍යාපනය: {profile.expectation_education||'Any'}</div><div className='mt-2 text-lg font-bold text-blue-600'>මුළු ගැලපීම: {displayBreakdown?.total}% (සියලු කරුණු සැලකීමෙන්)</div></div>
+          <div><h1 className='text-2xl font-bold flex items-center gap-2'>{profile.full_name} {profile.verified_badge && <span className='bg-green-100 text-green-800 border border-green-300 text-xs px-2 py-1 rounded-full'>✓ Verified</span>} {candidateVerStatus==='limited' && <span className='bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full'>Limited - Guardian Pending</span>}</h1><div className='text-sm'>{profile.age} අවුරුදු {profile.living_city} | {profile.job} | {profile.religion||'Any'} | {profile.caste} | {profile.height_cm}cm | {profile.marital_status||''} | {profile.education||''} | බලාපොරොත්තු අධ්‍යාපනය: {profile.expectation_education||'Any'}</div><div className='mt-2 text-lg font-bold text-blue-600'>මුළු ගැලපීම: {displayBreakdown?.total}% (සියලු කරුණු සැලකීමෙන්)</div><button onClick={handleReport} disabled={reporting} className='mt-2 text-xs bg-gray-100 border px-3 py-1 rounded-full'>🚩 Report spam/fun {reporting? '...' : ''} ({profile.report_count||0}/3)</button></div>
         </div>
 
         <div className='mt-4 bg-amber-50 border-2 border-amber-200 p-4 rounded-xl text-sm'>
@@ -329,6 +389,7 @@ export default function Page(){
             <div>Birth: {profile.birth_date} {profile.birth_district_si} Birth Time - Secured.</div>
             <div>Height: {profile.height_cm}cm | Education: {profile.education||profile.education_level||'-'}</div>
             <div>Job: {profile.job} | Religion: {profile.religion||'-'} | Caste: {profile.caste} | Marital: {profile.marital_status||'-'}</div>
+            {profile.dob_original && <div className='text-[10px] text-gray-500 mt-1'>DOB Original: {profile.dob_original} | Time edits: {profile.time_edit_count || 0}</div>}
           </div>
           <div className='bg-purple-50 border p-3 rounded-xl'>
             <div className='font-bold mb-1'>Looking For - බලාපොරොත්තු වන</div>
@@ -377,7 +438,7 @@ export default function Page(){
 </div>
         </div>
         <div className='mt-6 border-t pt-4'>
-          <h2 className='font-bold text-lg'>Contact Details</h2>
+          <h2 className='font-bold text-lg'>Contact Details {candidateIsVerified ? '✓ Verified' : '⚠ Limited'}</h2>
           {interestStatus==='none' && (
             <div className='bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl text-center mt-2'>
               {!viewerIsPaid? (
@@ -385,6 +446,17 @@ export default function Page(){
                   <div className='font-bold text-red-700 text-lg'>🔒 {cur.full_name} is {cur.subscription_status} - Pay to Send Interest</div>
                   <div className='text-xs mt-1'>Non-paid users cannot send interests. Your contact also hidden from others.</div>
                   <button onClick={handlePay} className='bg-green-600 text-white px-8 py-3 rounded-full font-bold mt-3'>Pay Rs.{renewalPrice} & Unlock Sending</button>
+                </>
+              ) : !viewerIsVerified ? (
+                <>
+                  <div className='font-bold text-yellow-700 text-lg'>⚠ Your profile not verified yet</div>
+                  <div className='text-xs mt-1'>Guardian {cur.guardian_contact} pending verification. Admin will call and release. Your contacts hidden from others until verified.</div>
+                </>
+              ) : !candidateIsVerified ? (
+                <>
+                  <div className='font-bold text-yellow-700 text-lg'>⚠ {profile.full_name} not verified yet - Limited</div>
+                  <div className='text-xs mt-1'>This profile guardian verification pending. You can send interest but contacts will be visible only after both verified by admin. Guardian: hidden for privacy.</div>
+                  <button onClick={handleInterest} className='bg-pink-600 text-white px-8 py-3 rounded-full font-bold mt-3'>Send Interest (Verification Pending)</button>
                 </>
               ) : (
                 <>
@@ -394,13 +466,13 @@ export default function Page(){
               )}
             </div>
           )}
-          {interestStatus==='sent' && <div className='bg-blue-50 border-2 border-blue-300 p-4 rounded-xl text-center mt-2'><div className='font-bold'>Waiting for acceptance</div><div className='flex gap-2 justify-center mt-3'><button onClick={handleCancel} className='bg-gray-200 px-6 py-2 rounded-full'>❌ Cancel Interest</button></div></div>}
+          {interestStatus==='sent' && <div className='bg-blue-50 border-2 border-blue-300 p-4 rounded-xl text-center mt-2'><div className='font-bold'>Waiting for acceptance {candidateIsVerified ? '' : '(candidate limited)'}</div><div className='flex gap-2 justify-center mt-3'><button onClick={handleCancel} className='bg-gray-200 px-6 py-2 rounded-full'>❌ Cancel Interest</button></div></div>}
           {interestStatus==='received' && <div className='bg-green-50 border-2 border-green-400 p-4 rounded-xl text-center mt-2'><div className='font-bold'>💌 This user sent you interest! Accept?</div><div className='flex gap-2 justify-center mt-3'><button onClick={handleAcceptReceived} className='bg-green-600 text-white px-6 py-2 rounded-full'>✅ Accept</button><button onClick={handleRejectReceived} className='bg-gray-200 px-6 py-2 rounded-full'>Reject</button></div></div>}
           {interestStatus==='accepted' && (
             <div className='mt-2'>
               {canSeeContact? (
                 <div className='bg-green-50 border-2 border-green-300 p-4 rounded-xl'>
-                  <div className='font-bold text-green-800'>✅ Contact Details (Secure)</div>
+                  <div className='font-bold text-green-800'>✅ Contact Details (Secure) {profile.verified_badge && '✓ Verified'}</div>
                   <div className='mt-2'>Phone: {contact?.phone || contact?.phone_number || 'Not available'}</div>
                   <div>Email: {contact?.email || 'Not available'}</div>
                   <div>WhatsApp: {contact?.whatsapp || contact?.whatsapp_number || contact?.phone || 'Not available'}</div>
@@ -410,8 +482,19 @@ export default function Page(){
               ) : (
                 <div className='bg-red-50 border-2 border-red-400 p-6 rounded-2xl text-center'>
                   <div className='text-3xl'>🔒</div>
-                  <div className='font-bold text-red-800 text-lg'>{!viewerIsPaid? 'You must Pay First!' :!candidateIsPaid? `${profile.full_name} not paid yet` : 'Payment Required'}</div>
-                  <div className='text-sm mt-1'>{!viewerIsPaid? `Your profile ${cur.full_name} is ${cur.subscription_status}` : `profile must be active to view contact`}</div>
+                  <div className='font-bold text-red-800 text-lg'>
+                    {!viewerIsPaid? 'You must Pay First!' 
+                    :!viewerIsVerified? `Your profile not verified - guardian ${cur?.guardian_contact} pending`
+                    :!candidateIsVerified? `${profile.full_name} guardian verification pending - contacts hidden until admin verifies ${profile.guardian_contact ? 'guardian' : ''}`
+                    :!candidateIsPaid? `${profile.full_name} not paid yet` 
+                    : 'Payment Required'}
+                  </div>
+                  <div className='text-sm mt-1'>
+                    {!viewerIsPaid? `Your profile ${cur.full_name} is ${cur.subscription_status}` 
+                    :!viewerIsVerified? `Your account is ${viewerVerStatus} - admin will contact ${cur?.guardian_contact}`
+                    :!candidateIsVerified? `This profile is ${candidateVerStatus} - limited until guardian verified`
+                    : `profile must be active to view contact`}
+                  </div>
                   {!viewerIsPaid && <button onClick={handlePay} className='bg-green-600 text-white px-8 py-3 rounded-full font-bold mt-3'>Pay Rs.{renewalPrice} & Unlock</button>}
                 </div>
               )}
