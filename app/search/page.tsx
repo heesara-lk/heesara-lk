@@ -16,13 +16,20 @@ function isAdminEmail(email?:string|null){ if(!email) return false; const low=em
 const MIN_AGE = 18;
 const MAX_AGE = 70;
 const AGE_OPTIONS = Array.from({length: MAX_AGE - MIN_AGE + 1}, (_, i) => MIN_AGE + i);
+// NEW: Height constants 120-210 cm with max>min rule
+const MIN_HEIGHT = 120;
+const MAX_HEIGHT = 210;
+const HEIGHT_OPTIONS = Array.from({length: MAX_HEIGHT - MIN_HEIGHT + 1}, (_, i) => MIN_HEIGHT + i);
+// NEW: Education for search filter (same as create-profile)
+const EDUCATIONS = ['Upto O/L','O/L Passed','A/L Passed','Diploma','Degree','Masters','PhD','Any Other'];
+
 // Add 'නැත' for housewife - culturally needed
 const JOBS_WITH_NATH = JOBS.includes('නැත') ? JOBS : ['නැත', ...JOBS];
 
 export default function SearchPage(){
   const [profiles, setProfiles] = useState<any[]>([])
   const [photosMap, setPhotosMap] = useState<Record<string,string>>({})
-  const [filters, setFilters] = useState({ gender:'any', district_si:'any', job:'any', caste:'any', religion:'any', age_min:'18', age_max:'60' })
+  const [filters, setFilters] = useState({ gender:'any', district_si:'any', job:'any', caste:'any', religion:'any', education:'any', age_min:'18', age_max:'60', height_min:'120', height_max:'210' })
   const [loading, setLoading] = useState(false)
   const [myProfile, setMyProfile] = useState<any>(null)
   const [myIds, setMyIds] = useState<string[]>([])
@@ -96,6 +103,28 @@ export default function SearchPage(){
     setFilters({...filters, age_max: num.toString()});
   }
 
+  // NEW: Height handlers - same max>min rule as age
+  const handleHeightMinChange = (val: string) => {
+    let num = parseInt(val) || MIN_HEIGHT;
+    if (num < MIN_HEIGHT) num = MIN_HEIGHT;
+    if (num > MAX_HEIGHT) num = MAX_HEIGHT;
+    const currentMax = parseInt(filters.height_max) || MAX_HEIGHT;
+    if (num > currentMax) {
+      setFilters({...filters, height_min: num.toString(), height_max: num.toString()});
+    } else {
+      setFilters({...filters, height_min: num.toString()});
+    }
+  }
+
+  const handleHeightMaxChange = (val: string) => {
+    let num = parseInt(val) || MAX_HEIGHT;
+    if (num < MIN_HEIGHT) num = MIN_HEIGHT;
+    if (num > MAX_HEIGHT) num = MAX_HEIGHT;
+    const currentMin = parseInt(filters.height_min) || MIN_HEIGHT;
+    if (num < currentMin) num = currentMin;
+    setFilters({...filters, height_max: num.toString()});
+  }
+
   const loadProfiles = async (genderOverride?:string) => {
     setLoading(true)
     const genderToUse = genderOverride!== undefined? genderOverride : filters.gender
@@ -127,6 +156,8 @@ export default function SearchPage(){
     if(filters.job!=='any') filtered = filtered.filter((p:any)=> p.job_main===filters.job || p.job===filters.job || p.job_main_en===filters.job)
     if(filters.caste!=='any') filtered = filtered.filter((p:any)=> p.caste_main===filters.caste || p.caste===filters.caste)
     if(filters.religion!=='any') filtered = filtered.filter((p:any)=> p.religion===filters.religion)
+    // NEW: Education filter
+    if(filters.education!=='any') filtered = filtered.filter((p:any)=> p.education===filters.education || p.education_level===filters.education)
 
     if(filters.age_min || filters.age_max){
       const min = Math.max(parseInt(filters.age_min)||MIN_AGE, MIN_AGE)
@@ -136,6 +167,16 @@ export default function SearchPage(){
         if(!dob) return true
         const age = new Date().getFullYear() - new Date(dob).getFullYear()
         return age>=min && age<=max
+      })
+    }
+    // NEW: Height filter with max>min rule
+    if(filters.height_min || filters.height_max){
+      const minH = parseInt(filters.height_min)||MIN_HEIGHT
+      const maxH = parseInt(filters.height_max)||MAX_HEIGHT
+      filtered = filtered.filter((p:any)=>{
+        const h = p.height_cm || parseInt(p.height) || 0
+        if(!h) return true
+        return h>=minH && h<=maxH
       })
     }
     setProfiles(filtered)
@@ -185,22 +226,22 @@ export default function SearchPage(){
               <div className='font-bold mb-2 text-sm'>Switch Profiles: ({myProfiles.length}/2) {isAdmin? 'ADMIN '+myEmail : myEmail} {myProfiles.filter((p:any)=>p.is_visible===false).length>0? `(${myProfiles.filter((p:any)=>p.is_visible===false).length} Hidden)` : ''}</div>
               <div className='flex gap-2 flex-wrap'>
                 {myProfiles.map((p:any)=>(
-                  <button key={p.id} onClick={()=>switchActiveProfile(p.id)} className={'px-4 py-2 rounded-full border font-bold text-sm ' + (currentProfile?.id===p.id?'bg-blue-600 text-white':'bg-white') + (p.is_visible===false?'!bg-yellow-100!border-yellow-400':'')}>{p.name||p.full_name} - {p.age}y {currentProfile?.id===p.id?' (Active)':''} {p.is_visible===false?' (Hidden)':''}</button>
+                  <button key={p.id} onClick={()=>switchActiveProfile(p.id)} className={'px-4 py-2 rounded-full border font-bold text-sm ' + (currentProfile?.id===p.id?'bg-blue-600 text-white':'bg-white') + (p.is_visible===false?'!bg-yellow-100!border-yellow-400':'')}>{p.name||p.full_name} {currentProfile?.id===p.id?' (Active)':''} {p.is_visible===false?' (Hidden)':''}</button>
                 ))}
               </div>
             </div>
           )}
           {currentProfile && (
             <div className='bg-blue-50 border p-3 rounded-xl mb-4 text-xs'>
-              <div className='font-bold'>Viewing as: {currentProfile.name||currentProfile.full_name} - {currentProfile.age}y ({currentProfile.gender}) {currentProfile.religion? `- ${currentProfile.religion}`:''} - Showing: {currentProfile.gender==='male'?'Female':'Male'} only</div>
-              <div className='text-[11px] text-gray-600 mt-1'>⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - 18+ marriage age only</div>
+              <div className='font-bold'>Viewing as: {currentProfile.name||currentProfile.full_name} - Showing: {currentProfile.gender==='male'?'Female':'Male'} only</div>
+              <div className='text-[11px] text-gray-600 mt-1'>⚠ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - 18+ marriage age only</div>
             </div>
           )}
 
           <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
             <div><label className="text-xs font-bold">ස්ත්‍රී/පුරුෂ</label><select value={filters.gender} onChange={e=>{ const v=e.target.value; setFilters({...filters, gender:v}); loadProfiles(v); }} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option><option value="male">පුරුෂ</option><option value="female">ස්ත්‍රී</option></select></div>
             <div><label className="text-xs font-bold">දිස්ත්‍රික්කය</label><select value={filters.district_si} onChange={e=>setFilters({...filters, district_si:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{DISTRICTS_SI.map(d=><option key={d}>{d}</option>)}</select></div>
-            <div><label className="text-xs font-bold">ආගම</label><select value={filters.religion} onChange={e=>setFilters({...filters, religion:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම ආගමක්</option>{RELIGIONS.map(r=><option key={r} value={r}>{RELIGIONS_SI[r]} - {r}</option>)}</select></div>
+            <div><label className="text-xs font-bold">ආගම</label><select value={filters.religion} onChange={e=>setFilters({...filters, religion:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{RELIGIONS.map(r=><option key={r} value={r}>{RELIGIONS_SI[r]} - {r}</option>)}</select></div>
             <div><label className="text-xs font-bold">රැකියාව</label><select value={filters.job} onChange={e=>setFilters({...filters, job:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{JOBS_WITH_NATH.map(j=><option key={j}>{j}</option>)}</select></div>
             <div><label className="text-xs font-bold">කුලය</label><select value={filters.caste} onChange={e=>setFilters({...filters, caste:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300"><option value="any">ඕනෑම</option>{CASTES.map(c=><option key={c}>{c}</option>)}</select></div>
             <div className="grid grid-cols-2 gap-2">
@@ -217,8 +258,31 @@ export default function SearchPage(){
                 </select>
               </div>
             </div>
+            {/* NEW: Height min/max with max>min rule */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-bold">උස අවම cm</label>
+                <select value={filters.height_min} onChange={e=>handleHeightMinChange(e.target.value)} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
+                  {HEIGHT_OPTIONS.map(h=><option key={h} value={h.toString()}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold">උස උපරිම cm</label>
+                <select value={filters.height_max} onChange={e=>handleHeightMaxChange(e.target.value)} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
+                  {HEIGHT_OPTIONS.filter(h=> h >= parseInt(filters.height_min || '120')).map(h=><option key={h} value={h.toString()}>{h}</option>)}
+                </select>
+              </div>
+            </div>
+            {/* NEW: Education filter for matching */}
+            <div>
+              <label className="text-xs font-bold">අධ්‍යාපනය</label>
+              <select value={filters.education} onChange={e=>setFilters({...filters, education:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
+                <option value="any">ඕනෑම</option>
+                {EDUCATIONS.map(ed=><option key={ed} value={ed}>{ed}</option>)}
+              </select>
+            </div>
           </div>
-          <p className="text-[11px] text-gray-500 mt-2">⚠️ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - Search shows 18+ only. Porondam matching is cultural belief only.</p>
+          <p className="text-[11px] text-gray-500 mt-2">⚠ විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - Search shows 18+ only. Porondam matching is cultural belief only.</p>
           <button onClick={()=>loadProfiles()} disabled={loading} className="mt-4 w-full md:w-auto bg-[#7B1F2A] text-white px-6 py-2 rounded-xl text-sm font-bold">{loading?'හොයනවා...':'🔍 Search කරන්න'}</button>
 
           <div className="mt-6 grid md:grid-cols-3 gap-4">
@@ -238,7 +302,7 @@ export default function SearchPage(){
                   </div>
                   <div className="p-3">
                     <h3 className="font-bold">{p.full_name || p.name}</h3>
-                    <p className="text-xs text-gray-600 mt-1">💼 {p.job_main || p.job} | {p.religion||'Any'} | {p.caste||''}</p>
+                    <p className="text-xs text-gray-600 mt-1">💼 {p.job_main || p.job} | {p.religion||'Any'} | {p.caste||''} | 🎓 {p.education||p.education_level||''} | 📏 {p.height_cm||p.height||''}cm</p>
                     <div className="mt-3 flex gap-2"><Link href={`/profile/${p.id}`} className="flex-1 border text-center py-2 rounded-xl text-xs">View</Link><button onClick={()=>sendInterest(p)} className="flex-1 bg-[#2D8A4E] text-white py-2 rounded-xl text-xs font-bold">💌 Interest</button></div>
                   </div>
                 </div>

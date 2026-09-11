@@ -22,10 +22,15 @@ const RELIGIONS = ['Buddhist','Catholic','Christian','Hindu','Islam','Any Other'
 const MARITAL = ['Never Married','Divorced','Widowed','Married'];
 const EDUCATIONS = ['Upto O/L','O/L Passed','A/L Passed','Diploma','Degree','Masters','PhD','Any Other'];
 const RELIGIONS_ANY = ['Any',...RELIGIONS];
+const EDUCATIONS_ANY = ['Any',...EDUCATIONS];
 
 // Add 'නැත' for housewives / no job - culturally needed in SL
 const JOBS_WITH_NATH = JOBS.includes('නැත') ? JOBS : ['නැත', ...JOBS];
 const JOBS_WITH_NATH_EXPECT = JOBS.includes('නැත') ? ['Any', ...JOBS] : ['Any', 'නැත', ...JOBS];
+
+// === Dropdowns with 18+ limit for Age, and height with max>min rule ===
+const AGE_DROPDOWN = Array.from({length: 53}, (_,i)=> 18 + i); // 18 to 70
+const HEIGHT_DROPDOWN = Array.from({length: 91}, (_,i)=> 120 + i); // 120cm to 210cm
 
 function CreateProfileForm(){
   const router=useRouter(); const searchParams=useSearchParams(); const editId=searchParams.get('edit');
@@ -39,7 +44,7 @@ function CreateProfileForm(){
     height:'170',body_type:BODY_TYPES[1],skin_color:SKIN_COLORS[1],
     birth_hr:'10',birth_min:'30',birth_ampm:'AM', phone:'',email:'', bio:'',
     exp_age_min:'22',exp_age_max:'30',exp_height_min:'150',exp_height_max:'180',
-    exp_district:'Any',exp_job:'Any',exp_caste:'Any',exp_religion:'Any',exp_horoscope:'Any',
+    exp_district:'Any',exp_job:'Any',exp_caste:'Any',exp_religion:'Any',exp_education:'Any',exp_horoscope:'Any',
     is_private:false, hide_phone:true, hide_email:true, photo_blur:false
   });
   const [birthCities,setBirthCities]=useState<string[]>(getCitiesByDistrict(DISTRICTS_SI[3])); const [livingCities,setLivingCities]=useState<string[]>(getCitiesByDistrict(DISTRICTS_SI[3]));
@@ -116,14 +121,15 @@ function CreateProfileForm(){
             phone: contactData?.phone || '',
             email: contactData?.email || '',
             bio: data.bio || data.about || '',
-            exp_age_min: (data.expectation_age_min || 22).toString(),
-            exp_age_max: (data.expectation_age_max || 30).toString(),
+            exp_age_min: Math.max(18, (data.expectation_age_min || 22)).toString(),
+            exp_age_max: Math.max(18, (data.expectation_age_max || 30)).toString(),
             exp_height_min: (data.expectation_height_min || 150).toString(),
             exp_height_max: (data.expectation_height_max || 180).toString(),
             exp_district: data.expectation_district || 'Any',
             exp_job: data.expectation_job || 'Any',
             exp_caste: data.expectation_caste || 'Any',
             exp_religion: data.expectation_religion || 'Any',
+            exp_education: data.expectation_education || data.exp_education || 'Any',
             exp_horoscope: data.horoscope_required===true? 'Required' : 'Not Required',
             is_private: data.is_private || false,
             hide_phone: data.hide_phone?? true,
@@ -139,6 +145,16 @@ function CreateProfileForm(){
     if(!form.full_name.trim()){ alert('Name required'); return; }
     const ageCheck=getAge(form.dob); if(ageCheck<18){ alert(`විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි! Age ${ageCheck}`); setStep(1); return; }
     if(!agreed18 && !isEditMode){ alert('කරුණාකර විවාහ වයස 18+ බව තහවුරු කරන්න / Please confirm 18+ marriage age'); return; }
+    // Validate expectation ages 18+ 
+    const expMin = parseInt(form.exp_age_min); const expMax = parseInt(form.exp_age_max);
+    if(isNaN(expMin) || expMin < 18){ alert('Expected min age must be 18+ / අවම වයස 18+ විය යුතුයි'); setStep(3); return; }
+    if(isNaN(expMax) || expMax < 18){ alert('Expected max age must be 18+ / උපරිම වයස 18+ විය යුතුයි'); setStep(3); return; }
+    if(expMax < expMin){ alert('Max age cannot be less than min age / උපරිම වයස අවම වයසට වඩා අඩු විය නොහැක'); setStep(3); return; }
+    // Validate expected height max>min rule (same as age)
+    const hMin = parseInt(form.exp_height_min); const hMax = parseInt(form.exp_height_max);
+    if(isNaN(hMin) || isNaN(hMax)){ alert('Height required'); setStep(3); return; }
+    if(hMax < hMin){ alert('Max height cannot be less than min height / උපරිම උස අවම උසට වඩා අඩු විය නොහැක'); setStep(3); return; }
+
     const { data: { user } } = await supabase.auth.getUser();
     if(!user){ alert('Please login first'); router.push('/login'); return; }
     const admin=isAdminEmail(user.email);
@@ -179,7 +195,7 @@ function CreateProfileForm(){
         bio: form.bio, about: form.bio,
         expectation_age_min:parseInt(form.exp_age_min), expectation_age_max:parseInt(form.exp_age_max),
         expectation_height_min:parseInt(form.exp_height_min), expectation_height_max:parseInt(form.exp_height_max),
-        expectation_district:form.exp_district, expectation_job:form.exp_job, expectation_caste:form.exp_caste, expectation_religion: form.exp_religion,
+        expectation_district:form.exp_district, expectation_job:form.exp_job, expectation_caste:form.exp_caste, expectation_religion: form.exp_religion, expectation_education: form.exp_education,
         horoscope_required: form.exp_horoscope==='Required',
         is_private: form.is_private, hide_phone: form.hide_phone, hide_email: form.hide_email,
         photo_blur: form.photo_blur,
@@ -237,7 +253,9 @@ function CreateProfileForm(){
           age_max: parseInt(form.exp_age_max) || 30,
           height_min: parseInt(form.exp_height_min) || 150,
           height_max: parseInt(form.exp_height_max) || 180,
-          district_pref_en: form.exp_district
+          district_pref_en: form.exp_district,
+          // NEW: education expectation for matching (if column exists, will save; if not, ignored via try/catch)
+          education: form.exp_education
         }, { onConflict: 'profile_id' });
       }catch{}
       try{
@@ -272,7 +290,7 @@ function CreateProfileForm(){
     setSaving(false);
   };
 
-  const ANY=['Any',...DISTRICTS_SI]; const J_ANY=JOBS_WITH_NATH_EXPECT; const C_ANY=['Any',...CASTES]; const R_ANY=['Any',...RELIGIONS]; const H_ANY=['Any','Required','Not Required']; const currentAge=getAge(form.dob);
+  const ANY=['Any',...DISTRICTS_SI]; const J_ANY=JOBS_WITH_NATH_EXPECT; const C_ANY=['Any',...CASTES]; const R_ANY=['Any',...RELIGIONS]; const E_ANY=EDUCATIONS_ANY; const H_ANY=['Any','Required','Not Required']; const currentAge=getAge(form.dob);
 
   if(!editId &&!isAdmin && (myCount>=2 || serverCount>=2)){
     return (
@@ -293,22 +311,93 @@ function CreateProfileForm(){
       <h1 className='text-2xl font-bold mb-2'>{isEditMode? 'Update Profile' : 'Create Profile'} {isAdmin?'👑':''}</h1>
       <div className={`border-2 p-3 rounded-xl mb-4 font-bold ${isAdmin?'bg-yellow-50 border-yellow-400':'bg-green-50 border-green-300'}`}>{isAdmin?`👑 Admin ${myEmail} - Unlimited`:`My: ${myCount}/2 - Server: ${serverCount}/2 - DB: ${dbCount} - ${myEmail}`} | Age: {currentAge}</div>
       <div className='flex gap-2 mb-6'>{[1,2,3,4].map(s=><div key={s} className={`flex-1 h-3 rounded-full ${step>=s?'bg-blue-600':'bg-gray-200'}`}></div>)}</div>
-      {step===1 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'><h2 className='font-bold border-b pb-2'>Step 1: Basic & Horoscope ඔබගේ විස්තර සහ කේන්දරයට අවශ්‍ය තොරතුරු </h2><div><label className='text-sm font-bold'>Full Name * සම්පූර්ණ නම</label><input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div><div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Gender * ස්ත්‍රී පුරුෂ භාවය</label><select value={form.gender} onChange={e=>setForm({...form,gender:e.target.value})} className='w-full border-2 p-3 rounded-lg'><option value='male'>Male</option><option value='female'>Female</option></select></div><div><label className='text-sm font-bold'>DOB * උපන් දිනය (Must be 18+)</label><input type='date' max={MAX_DOB_18} value={form.dob} onChange={e=>setForm({...form,dob:e.target.value})} className={`w-full border-2 p-3 rounded-lg ${currentAge<18?'border-red-500 bg-red-50':''}`}/>{currentAge<18 && <div className='text-red-600 text-xs font-bold mt-1'>Age {currentAge} - Must be 18+</div>}<div className='text-[11px] text-gray-500 mt-1'>විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - 18+ marriage age only</div></div></div><div><label className='text-sm font-bold'>Birth Time * උපන් වේලාව (ඔබ හැර කිසිවෙකුට දැක ගැනීමට නොහැකිය)</label><div className='grid grid-cols-3 gap-2'><select value={form.birth_hr} onChange={e=>setForm({...form,birth_hr:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{Array.from({length:12},(_,i)=>i+1).map(h=><option key={h} value={h.toString()}>{h}</option>)}</select><select value={form.birth_min} onChange={e=>setForm({...form,birth_min:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=><option key={m} value={m}>{m}</option>)}</select><select value={form.birth_ampm} onChange={e=>setForm({...form,birth_ampm:e.target.value})} className='w-full border-2 p-3 rounded-lg'><option value='AM'>AM</option><option value='PM'>PM</option></select></div><p className='text-[11px] text-gray-500 mt-1 bg-amber-50 border border-amber-200 p-2 rounded'>🔮 පොරොන්දම් 20 ගැලපීම සංස්කෘතික විශ්වාසයක් සඳහා පමණයි, ජ්යොතිෂ සහතිකයක් නොවේ. Porondam matching is cultural belief for information only, not astrological guarantee. Birth time is private, never shown to others.</p></div><button disabled={currentAge<18} onClick={()=>setStep(2)} className={`w-full py-3 rounded-full font-bold ${currentAge<18?'bg-gray-300':'bg-blue-600 text-white'}`}>Next</button></div>}
+      {step===1 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'><h2 className='font-bold border-b pb-2'>Step 1: Basic & Horoscope ඔබගේ විස්තර සහ කේන්දරයට අවශ්‍ය තොරතුරු </h2><div><label className='text-sm font-bold'>Full Name * සම්පූර්ණ නම</label><input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'/></div><div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Gender * ස්ත්‍රී පුරුෂ භාවය</label><select value={form.gender} onChange={e=>setForm({...form,gender:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'><option value='male'>Male</option><option value='female'>Female</option></select></div><div><label className='text-sm font-bold'>DOB * උපන් දිනය (Must be 18+)</label><input type='date' max={MAX_DOB_18} value={form.dob} onChange={e=>setForm({...form,dob:e.target.value})} className={`w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30 ${currentAge<18?'border-red-500 bg-red-50':''}`}/>{currentAge<18 && <div className='text-red-600 text-xs font-bold mt-1'>Age {currentAge} - Must be 18+</div>}<div className='text-[11px] text-gray-500 mt-1'>විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - 18+ marriage age only</div></div></div><div><label className='text-sm font-bold'>Birth Time * උපන් වේලාව (ඔබ හැර කිසිවෙකුට දැක ගැනීමට නොහැකිය)</label><div className='grid grid-cols-3 gap-2'><select value={form.birth_hr} onChange={e=>setForm({...form,birth_hr:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{Array.from({length:12},(_,i)=>i+1).map(h=><option key={h} value={h.toString()}>{h}</option>)}</select><select value={form.birth_min} onChange={e=>setForm({...form,birth_min:e.target.value})} className='w-full border-2 p-3 rounded-lg  border-green-300 bg-green-50/30'>{Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=><option key={m} value={m}>{m}</option>)}</select><select value={form.birth_ampm} onChange={e=>setForm({...form,birth_ampm:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'><option value='AM'>AM</option><option value='PM'>PM</option></select></div><p className='text-[11px] text-gray-500 mt-1 bg-amber-50 border border-amber-200 p-2 rounded'>🔮 පොරොන්දම් 20 ගැලපීම සංස්කෘතික විශ්වාසයක් සඳහා පමණයි, ජ්‍යෝතිෂ සහතිකයක් නොවේ. Porondam matching is cultural belief for information only, not astrological guarantee. Birth time is private, never shown to others.</p></div><button disabled={currentAge<18} onClick={()=>setStep(2)} className={`w-full py-3 rounded-full font-bold ${currentAge<18?'bg-gray-300':'bg-blue-600 text-white'}`}>Next</button></div>}
       {step===2 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'>
         <h2 className='font-bold border-b pb-2'>Step 2: Place & Job & Religion ස්ථානය සහ රැකියාව සහ ආගම</h2>
-        <div><label className='text-sm font-bold text-red-700'>Birth District * උපන් දිස්ත්‍රික්කය</label><select value={form.birth_district_si} onChange={e=>setForm({...form,birth_district_si:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{DISTRICTS_SI.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div>
-        <div><label className='text-sm font-bold text-red-700'>Birth City * උපන් නගරය</label><select value={form.birth_city} onChange={e=>setForm({...form,birth_city:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{birthCities.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div>
-        <div><label className='text-sm font-bold text-blue-700'>Living District * පදිංචි දිස්ත්‍රික්කය</label><select value={form.living_district_si} onChange={e=>setForm({...form,living_district_si:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{DISTRICTS_SI.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div>
-        <div><label className='text-sm font-bold text-blue-700'>Living City * පදිංචි නගරය</label><select value={form.living_city} onChange={e=>setForm({...form,living_city:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{livingCities.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div>
-        <div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Job රැකියාව * {form.job==='නැත' && <span className='text-xs text-gray-500'></span>}</label><select value={form.job} onChange={e=>setForm({...form,job:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{JOBS_WITH_NATH.map((j:any)=><option key={j} value={j}>{j}</option>)}</select></div><div><label className='text-sm font-bold'>Caste කුලය</label><select value={form.caste} onChange={e=>setForm({...form,caste:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{CASTES.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div></div>
+        <div><label className='text-sm font-bold text-red-700'>Birth District * උපන් දිස්ත්‍රික්කය</label><select value={form.birth_district_si} onChange={e=>setForm({...form,birth_district_si:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{DISTRICTS_SI.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div>
+        <div><label className='text-sm font-bold text-red-700'>Birth City * උපන් නගරය</label><select value={form.birth_city} onChange={e=>setForm({...form,birth_city:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{birthCities.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div>
+        <div><label className='text-sm font-bold text-blue-700'>Living District * පදිංචි දිස්ත්‍රික්කය</label><select value={form.living_district_si} onChange={e=>setForm({...form,living_district_si:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{DISTRICTS_SI.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div>
+        <div><label className='text-sm font-bold text-blue-700'>Living City * පදිංචි නගරය</label><select value={form.living_city} onChange={e=>setForm({...form,living_city:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{livingCities.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div>
+        <div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Job රැකියාව * {form.job==='නැත' && <span className='text-xs text-gray-500'></span>}</label><select value={form.job} onChange={e=>setForm({...form,job:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{JOBS_WITH_NATH.map((j:any)=><option key={j} value={j}>{j}</option>)}</select></div><div><label className='text-sm font-bold'>Caste කුලය</label><select value={form.caste} onChange={e=>setForm({...form,caste:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{CASTES.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div></div>
         <div className='grid grid-cols-3 gap-4'>
-          <div><label className='text-sm font-bold'>Religion ආගම</label><select value={form.religion} onChange={e=>setForm({...form,religion:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{RELIGIONS.map((r:any)=><option key={r} value={r}>{r}</option>)}</select></div>
-          <div><label className='text-sm font-bold'>Marital විවාහ තත්ත්වය</label><select value={form.marital_status} onChange={e=>setForm({...form,marital_status:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{MARITAL.map((m:any)=><option key={m} value={m}>{m}</option>)}</select></div>
-          <div><label className='text-sm font-bold'>Education අධ්‍යාපනය</label><select value={form.education} onChange={e=>setForm({...form,education:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{EDUCATIONS.map((ed:any)=><option key={ed} value={ed}>{ed}</option>)}</select></div>
+          <div><label className='text-sm font-bold'>Religion ආගම</label><select value={form.religion} onChange={e=>setForm({...form,religion:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{RELIGIONS.map((r:any)=><option key={r} value={r}>{r}</option>)}</select></div>
+          <div><label className='text-sm font-bold'>Marital විවාහ තත්ත්වය</label><select value={form.marital_status} onChange={e=>setForm({...form,marital_status:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{MARITAL.map((m:any)=><option key={m} value={m}>{m}</option>)}</select></div>
+          <div><label className='text-sm font-bold'>Education අධ්‍යාපනය</label><select value={form.education} onChange={e=>setForm({...form,education:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{EDUCATIONS.map((ed:any)=><option key={ed} value={ed}>{ed}</option>)}</select></div>
         </div>
-        <div className='grid grid-cols-3 gap-4'><div><label className='text-sm font-bold'>Height උස cm</label><input value={form.height} onChange={e=>setForm({...form,height:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div><div><label className='text-sm font-bold'>Body ශරීර ස්වරූපය</label><select value={form.body_type} onChange={e=>setForm({...form,body_type:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{BODY_TYPES.map((b:any)=><option key={b} value={b}>{b}</option>)}</select></div><div><label className='text-sm font-bold'>Skin සමේ වර්ණය</label><select value={form.skin_color} onChange={e=>setForm({...form,skin_color:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{SKIN_COLORS.map((s:any)=><option key={s} value={s}>{s}</option>)}</select></div></div>
+        <div className='grid grid-cols-3 gap-4'>
+          <div>
+            <label className='text-sm font-bold'>Height උස cm *</label>
+            <select value={form.height} onChange={e=>setForm({...form,height:e.target.value})} className='w-full border-2 p-3 rounded-lg  border-purple-300'>
+              {HEIGHT_DROPDOWN.map((h:any)=><option key={h} value={h.toString()}>{h} cm</option>)}
+            </select>
+            <p className='text-[11px] text-gray-500 mt-1'>120-210 cm</p>
+          </div>
+          <div><label className='text-sm font-bold'>Body ශරීර ස්වරූපය</label><select value={form.body_type} onChange={e=>setForm({...form,body_type:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{BODY_TYPES.map((b:any)=><option key={b} value={b}>{b}</option>)}</select></div><div><label className='text-sm font-bold'>Skin සමේ වර්ණය</label><select value={form.skin_color} onChange={e=>setForm({...form,skin_color:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{SKIN_COLORS.map((s:any)=><option key={s} value={s}>{s}</option>)}</select></div>
+        </div>
         <div className='flex gap-3'><button onClick={()=>setStep(1)} className='flex-1 bg-gray-200 py-3 rounded-full'>Back</button><button onClick={()=>setStep(3)} className='flex-1 bg-blue-600 text-white py-3 rounded-full font-bold'>Next</button></div></div>}
-      {step===3 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'><h2 className='font-bold border-b pb-2'>Step 3: බලාපොරොත්තු - ඔබ සහකරුවෙකුගෙන් බලාපොරොත්තුවන දේ සදහන් කරන්න.</h2><div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Min Age අවම වයස</label><input type='number' value={form.exp_age_min} onChange={e=>setForm({...form,exp_age_min:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div><div><label className='text-sm font-bold'>Max Age උපරිම වයස</label><input type='number' value={form.exp_age_max} onChange={e=>setForm({...form,exp_age_max:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div></div><div className='grid grid-cols-2 gap-4'><div><label className='text-sm font-bold'>Min Height අවම උස cm</label><input type='number' value={form.exp_height_min} onChange={e=>setForm({...form,exp_height_min:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div><div><label className='text-sm font-bold'>Max Height උපරිම උස cm</label><input type='number' value={form.exp_height_max} onChange={e=>setForm({...form,exp_height_max:e.target.value})} className='w-full border-2 p-3 rounded-lg'/></div></div><div><label className='text-sm font-bold'>Expected Living District බලාපොරොත්තුවන පදිංචි දිස්ත්‍රික්කය</label><select value={form.exp_district} onChange={e=>setForm({...form,exp_district:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{ANY.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div><div><label className='text-sm font-bold'>Expected Job බලාපොරොත්තුවන රැකියාව - ගෘහණිය සඳහා නැත තෝරන්න</label><select value={form.exp_job} onChange={e=>setForm({...form,exp_job:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{J_ANY.map((j:any)=><option key={j} value={j}>{j}</option>)}</select><p className='text-[11px] text-gray-500 mt-1'>බොහෝ පිරිමින් ගෘහණියක් බලාපොරොත්තු වේ නම් නැත තෝරන්න - Many males seek housewife, select නැත</p></div><div><label className='text-sm font-bold'>Expected Caste බලාපොරොත්තුවන කුලය</label><select value={form.exp_caste} onChange={e=>setForm({...form,exp_caste:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{C_ANY.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div><div><label className='text-sm font-bold'>Expected Religion බලාපොරොත්තුවන ආගම</label><select value={form.exp_religion} onChange={e=>setForm({...form,exp_religion:e.target.value})} className='w-full border-2 p-3 rounded-lg border-purple-300'>{R_ANY.map((r:any)=><option key={r} value={r}>{r}</option>)}</select></div><div><label className='text-sm font-bold'>Horoscope Required? කේන්දරය අවශ්‍යයද?</label><select value={form.exp_horoscope} onChange={e=>setForm({...form,exp_horoscope:e.target.value})} className='w-full border-2 p-3 rounded-lg'>{H_ANY.map((h:any)=><option key={h} value={h}>{h}</option>)}</select></div><div className='flex gap-3'><button onClick={()=>setStep(2)} className='flex-1 bg-gray-200 py-3 rounded-full'>Back</button><button onClick={()=>setStep(4)} className='flex-1 bg-blue-600 text-white py-3 rounded-full font-bold'>Next: Photos & Privacy</button></div></div>}
+      {step===3 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'><h2 className='font-bold border-b pb-2'>Step 3: බලාපොරොත්තු - ඔබ සොයන කෙනා සතු විය යුතු ලක්ෂණ
+        </h2>
+        {/* === Age dropdowns with 18+ and max>=min rule === */}
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label className='text-sm font-bold'>Min Age අවම වයස * (18+ only)</label>
+            <select value={form.exp_age_min} onChange={e=>{
+              const newMin = parseInt(e.target.value);
+              const curMax = parseInt(form.exp_age_max);
+              setForm({...form, exp_age_min:e.target.value, exp_age_max: curMax < newMin ? e.target.value : form.exp_age_max});
+            }} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>
+              {AGE_DROPDOWN.map((age:any)=><option key={age} value={age.toString()}>{age} years</option>)}
+            </select>
+            <p className='text-[11px] text-gray-500 mt-1'>විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි</p>
+          </div>
+          <div>
+            <label className='text-sm font-bold'>Max Age උපරිම වයස * (18+ only)</label>
+            <select value={form.exp_age_max} onChange={e=>{
+              const newMax = parseInt(e.target.value);
+              const curMin = parseInt(form.exp_age_min);
+              if(newMax < curMin){
+                alert('Max cannot be less than Min / උපරිමය අවමයට වඩා අඩු විය නොහැක');
+                return;
+              }
+              setForm({...form,exp_age_max:e.target.value});
+            }} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>
+              {AGE_DROPDOWN.filter((a:any)=> a >= parseInt(form.exp_age_min || '18')).map((age:any)=><option key={age} value={age.toString()}>{age} years</option>)}
+            </select>            
+          </div>
+        </div>
+        {/* === Height dropdowns with max>min rule similar to age === */}
+        <div className='grid grid-cols-2 gap-4'>
+          <div>
+            <label className='text-sm font-bold'>Min Height අවම උස cm *</label>
+            <select value={form.exp_height_min} onChange={e=>{
+              const newMin = parseInt(e.target.value);
+              const curMax = parseInt(form.exp_height_max);
+              setForm({...form, exp_height_min:e.target.value, exp_height_max: curMax < newMin ? e.target.value : form.exp_height_max});
+            }} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>
+              {HEIGHT_DROPDOWN.map((h:any)=><option key={h} value={h.toString()}>{h} cm</option>)}
+            </select>            
+          </div>
+          <div>
+            <label className='text-sm font-bold'>Max Height උපරිම උස cm *</label>
+            <select value={form.exp_height_max} onChange={e=>{
+              const newMax = parseInt(e.target.value);
+              const curMin = parseInt(form.exp_height_min);
+              if(newMax < curMin){
+                alert('Max height cannot be less than min height / උපරිම උස අවම උසට වඩා අඩු විය නොහැක');
+                return;
+              }
+              setForm({...form,exp_height_max:e.target.value});
+            }} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>
+              {HEIGHT_DROPDOWN.filter((h:any)=> h >= parseInt(form.exp_height_min || '120')).map((h:any)=><option key={h} value={h.toString()}>{h} cm</option>)}
+            </select>          
+          </div>
+        </div>
+        <div><label className='text-sm font-bold'>Expected Living District බලාපොරොත්තුවන පදිංචි දිස්ත්‍රික්කය</label><select value={form.exp_district} onChange={e=>setForm({...form,exp_district:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{ANY.map((d:any)=><option key={d} value={d}>{d}</option>)}</select></div>
+        <div className='grid grid-cols-2 gap-4'>
+          <div><label className='text-sm font-bold'>Expected Job බලාපොරොත්තුවන රැකියාව</label><select value={form.exp_job} onChange={e=>setForm({...form,exp_job:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{J_ANY.map((j:any)=><option key={j} value={j}>{j}</option>)}</select><p className='text-[11px] text-gray-500 mt-1'>ගෘහණියක් බලාපොරොත්තු වේ නම් නැත තෝරන්න</p></div>
+          <div><label className='text-sm font-bold'>Expected Education අධ්‍යාපනය</label><select value={form.exp_education} onChange={e=>setForm({...form,exp_education:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'><option value='Any'>Any - ඕනෑම</option>{EDUCATIONS.map((ed:any)=><option key={ed} value={ed}>{ed}</option>)}</select></div>
+        </div>
+        <div><label className='text-sm font-bold'>Expected Caste බලාපොරොත්තුවන කුලය</label><select value={form.exp_caste} onChange={e=>setForm({...form,exp_caste:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{C_ANY.map((c:any)=><option key={c} value={c}>{c}</option>)}</select></div><div><label className='text-sm font-bold'>Expected Religion බලාපොරොත්තුවන ආගම</label><select value={form.exp_religion} onChange={e=>setForm({...form,exp_religion:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{R_ANY.map((r:any)=><option key={r} value={r}>{r}</option>)}</select></div><div><label className='text-sm font-bold'>Horoscope Required? කේන්දරය අවශ්‍යද?</label><select value={form.exp_horoscope} onChange={e=>setForm({...form,exp_horoscope:e.target.value})} className='w-full border-2 p-3 rounded-lg border-green-300 bg-green-50/30'>{H_ANY.map((h:any)=><option key={h} value={h}>{h}</option>)}</select></div><div className='flex gap-3'><button onClick={()=>setStep(2)} className='flex-1 bg-gray-200 py-3 rounded-full border-green-300 bg-green-50/30'>Back</button><button onClick={()=>setStep(4)} className='flex-1 bg-blue-600 text-white py-3 rounded-full font-bold'>Next: Photos & Privacy</button></div></div>}
       {step===4 && <div className='space-y-4 border p-6 rounded-xl bg-white shadow'>
         <h2 className='font-bold border-b pb-2'>Step 4: About + Photos + Contact + Privacy</h2>
         <div className='bg-amber-50 border-2 border-amber-200 rounded-xl p-4'>
