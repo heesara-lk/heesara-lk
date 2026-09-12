@@ -4,5 +4,5 @@ Disallow: /api/
 Disallow: /account/
 Disallow: /my-profiles/
 Disallow: /admin/
-Disallow: /login/
+Disallow: /pay/
 Sitemap: https://heesara.lk/sitemap.xml
