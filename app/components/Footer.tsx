@@ -1,6 +1,40 @@
+'use client'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase-heesara'
+
+const ADMIN_EMAILS_RAW = [
+  'manjula.upashantha@gmail.com',
+  'akm.upashantha@gmail.com',
+  'akmupashantha@gmail.com',
+  'heesara@gmail.com',
+  'manjulaupashantha@gmail.com',
+  'heesara.support@gmail.com'
+]
+function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
+const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase())
+const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e))
+function isAdminEmail(email?:string|null){
+  if(!email) return false
+  const low=email.toLowerCase()
+  const norm=normalizeEmail(email)
+  return ADMIN_EMAILS.includes(low) || ADMIN_NORMALIZED.includes(norm)
+}
 
 export default function Footer(){
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminEmail, setAdminEmail] = useState('')
+
+  useEffect(()=>{
+    (async()=>{
+      const { data: { user } } = await supabase.auth.getUser()
+      if(user?.email && isAdminEmail(user.email)){
+        setIsAdmin(true)
+        setAdminEmail(user.email)
+      }
+    })()
+  },[])
+
   return (
     <footer className="bg-[#5a1620] text-white mt-10 border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-8">
@@ -71,6 +105,24 @@ export default function Footer(){
           <p>🔐 Secure • Verified • විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) • Guardian Verified • No Guarantee</p>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="bg-yellow-400 text-black border-t-2 border-yellow-500">
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap gap-2 items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span>👑 Admin: {adminEmail}</span>
+              <span className="bg-black text-yellow-400 px-2 py-0.5 rounded text-[10px]">ONLY YOU SEE THIS</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/admin/pending" className="bg-[#5a1620] text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-black transition">🛡️ Pending (Guardian Verify)</Link>
+              <Link href="/admin/reports" className="bg-red-600 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-red-700 transition">🚩 Reports (3=Block)</Link>
+              <Link href="/account" className="bg-white text-black px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-100 transition">👤 My Account</Link>
+              <a href="https://heesara.lk/sitemap.xml" target="_blank" className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-700 transition">🗺️ Sitemap</a>
+              <a href="https://search.google.com/search-console" target="_blank" className="bg-green-700 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-green-800 transition">🔍 Search Console</a>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   )
 }
