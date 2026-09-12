@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react'
 import { supabase, DISTRICTS_SI, JOBS, CASTES } from '@/lib/supabase-heesara'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const RELIGIONS = ['Buddhist','Catholic','Christian','Hindu','Islam','Any Other'];
-const RELIGIONS_SI: Record<string,string> = { 'Buddhist':'බෞද්ධ','Catholic':'කතෝලික','Christian':'ක්රිස්තියානි','Hindu':'හින්දු','Islam':'ඉස්ලාම්','Any Other':'වෙනත්' };
+const RELIGIONS_SI: Record<string,string> = { 'Buddhist':'බෞද්ධ','Catholic':'කතෝලික','Christian':'ක්‍රිස්තියානි','Hindu':'හින්දු','Islam':'ඉස්ලාම්','Any Other':'වෙනත්' };
 
-const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com'];
+const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com','heesara.support@gmail.com'];
 function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
@@ -27,6 +28,7 @@ const EDUCATIONS = ['Upto O/L','O/L Passed','A/L Passed','Diploma','Degree','Mas
 const JOBS_WITH_NATH = JOBS.includes('නැත') ? JOBS : ['නැත', ...JOBS];
 
 export default function SearchPage(){
+  const router = useRouter()
   const [profiles, setProfiles] = useState<any[]>([])
   const [photosMap, setPhotosMap] = useState<Record<string,string>>({})
   const [filters, setFilters] = useState({ gender:'any', district_si:'any', job:'any', caste:'any', religion:'any', education:'any', age_min:'18', age_max:'60', height_min:'120', height_max:'210' })
@@ -38,6 +40,8 @@ export default function SearchPage(){
   const [currentProfile, setCurrentProfile] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [myEmail, setMyEmail] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(()=>{
     try{ const ids=JSON.parse(localStorage.getItem('heesara_my_ids')||'[]'); setMyIds(ids); }catch{}
@@ -49,6 +53,8 @@ export default function SearchPage(){
     const { data: { user } } = await supabase.auth.getUser()
     setIsAdmin(isAdminEmail(user?.email))
     setMyEmail(user?.email||'')
+    setIsLoggedIn(!!user)
+    setAuthChecked(true)
     try{
       const myIdsList = JSON.parse(localStorage.getItem('heesara_my_ids')||'[]')
       const curId = localStorage.getItem('heesara_current_profile_id') || myIdsList[0]
@@ -64,9 +70,37 @@ export default function SearchPage(){
           const opposite = data.gender==='male'? 'female' : data.gender==='female'? 'male' : 'any';
           setFilters(f=>({...f, gender:opposite}));
           loadProfiles(opposite);
+          return
         }
-      } else { loadProfiles('any') }
+      }
+      loadProfiles('any')
     }catch{ loadProfiles('any') }
+  }
+
+  // NEW: Login guard - fixes Application error when guest clicks View
+  const requireLogin = (actionName: string = 'view profile') => {
+    if(!authChecked) return false
+    if(!isLoggedIn){
+      const go = confirm(`🔒 Please login to ${actionName}\n\nහීසර.lk බලන්න login විය යුතුයි.\n\nGo to login?`)
+      if(go) router.push('/login')
+      return false
+    }
+    if(!currentProfile && myProfiles.length===0 && !isAdmin){
+      const go = confirm(`📝 Please create a profile first to ${actionName}\n\nපළමුව ඔබගේ profile එක සාදන්න.\n\nCreate now?`)
+      if(go) router.push('/create-profile')
+      return false
+    }
+    return true
+  }
+
+  const handleView = (profileId: string) => {
+    if(!requireLogin('view profile details')) return
+    router.push(`/profile/${profileId}`)
+  }
+
+  const handleInterestClick = (p:any) => {
+    if(!requireLogin('send interest')) return
+    sendInterest(p)
   }
 
   const switchActiveProfile = async (id:string) => {
@@ -84,7 +118,6 @@ export default function SearchPage(){
     let num = parseInt(val) || MIN_AGE;
     if (num < MIN_AGE) num = MIN_AGE;
     if (num > MAX_AGE) num = MAX_AGE;
-    // Ensure min doesn't exceed current max
     const currentMax = parseInt(filters.age_max) || MAX_AGE;
     if (num > currentMax) {
       setFilters({...filters, age_min: num.toString(), age_max: num.toString()});
@@ -97,7 +130,6 @@ export default function SearchPage(){
     let num = parseInt(val) || MAX_AGE;
     if (num < MIN_AGE) num = MIN_AGE;
     if (num > MAX_AGE) num = MAX_AGE;
-    // Ensure max not less than min
     const currentMin = parseInt(filters.age_min) || MIN_AGE;
     if (num < currentMin) num = currentMin;
     setFilters({...filters, age_max: num.toString()});
@@ -143,7 +175,7 @@ export default function SearchPage(){
 
     if(filters.district_si!=='any'){
       const SI_TO_EN: Record<string,string> = {
-        'අම්පාර':'Ampara','අනුරාධපුර':'Anuradhapura','බදුල්ල':'Badulla','මඩකලපුව':'Batticaloa','කොළඹ':'Colombo','ගාල්ල':'Galle','ගම්පහ':'Gampaha','හම්බන්තොට':'Hambantota','යාපනය':'Jaffna','කළුතර':'Kalutara','මහනුවර':'Kandy','කෑගල්ල':'Kegalle','කිලිනොච්චිය':'Kilinochchi','කුරුණෑගල':'Kurunegala','මන්නාරම':'Mannar','මාතලේ':'Matale','මාතර':'Matara','මොනරාගල':'Monaragala','මුලතිව්':'Mullaitivu','නුවරඑළිය':'Nuwara Eliya','පොලොන්නරුව':'Polonnaruwa','පුත්තලම':'Puttalam','රත්නපුර':'Ratnapura','ත්රිකුණාමලය':'Trincomalee','වවුනියාව':'Vavuniya'
+        'අම්පාර':'Ampara','අනුරාධපුර':'Anuradhapura','බදුල්ල':'Badulla','මඩකලපුව':'Batticaloa','කොළඹ':'Colombo','ගාල්ල':'Galle','ගම්පහ':'Gampaha','හම්බන්තොට':'Hambantota','යාපනය':'Jaffna','කළුතර':'Kalutara','මහනුවර':'Kandy','කෑගල්ල':'Kegalle','කිලිනොච්චිය':'Kilinochchi','කුරුණෑගල':'Kurunegala','මන්නාරම':'Mannar','මාතලේ':'Matale','මාතර':'Matara','මොනරාගල':'Monaragala','මුලතිව්':'Mullaitivu','නුවරඑළිය':'Nuwara Eliya','පොලොන්නරුව':'Polonnaruwa','පුත්තලම':'Puttalam','රත්නපුර':'Ratnapura','ත්‍රිකුණාමලය':'Trincomalee','වවුනියාව':'Vavuniya'
       };
       const en = SI_TO_EN[filters.district_si] || ''
       filtered = filtered.filter((p:any)=>{
@@ -156,7 +188,6 @@ export default function SearchPage(){
     if(filters.job!=='any') filtered = filtered.filter((p:any)=> p.job_main===filters.job || p.job===filters.job || p.job_main_en===filters.job)
     if(filters.caste!=='any') filtered = filtered.filter((p:any)=> p.caste_main===filters.caste || p.caste===filters.caste)
     if(filters.religion!=='any') filtered = filtered.filter((p:any)=> p.religion===filters.religion)
-    // NEW: Education filter
     if(filters.education!=='any') filtered = filtered.filter((p:any)=> p.education===filters.education || p.education_level===filters.education)
 
     if(filters.age_min || filters.age_max){
@@ -169,7 +200,6 @@ export default function SearchPage(){
         return age>=min && age<=max
       })
     }
-    // NEW: Height filter with max>min rule
     if(filters.height_min || filters.height_max){
       const minH = parseInt(filters.height_min)||MIN_HEIGHT
       const maxH = parseInt(filters.height_max)||MAX_HEIGHT
@@ -197,7 +227,7 @@ export default function SearchPage(){
   }
 
   const sendInterest = async (toProfile:any) => {
-    if(!myProfile){ alert('මුලින්ම ඔබේ profile එක හදන්න!'); return }
+    if(!myProfile){ alert('මුලින්ම ඔබේ profile එක හදන්න!'); router.push('/create-profile'); return }
     if(myProfile.id===toProfile.id || myIds.includes(toProfile.id)){ alert('ඔබේම profile එකට interest යවන්න බෑ'); return }
     const { error } = await supabase.from('interests').insert({
       from_profile: myProfile.id, to_profile: toProfile.id, status:'pending',
@@ -218,8 +248,21 @@ export default function SearchPage(){
         <div className="bg-white rounded p-6 shadow">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-[#7B1F2A]">🔍 Search කරන්න</h1>
-            <Link href="/" className="text-sm border px-4 py-2 rounded-xl">Home</Link>
+            <div className="flex gap-2">
+              {!authChecked ? null : !isLoggedIn ? (
+                <Link href="/login" className="text-sm bg-[#5a1620] text-white px-4 py-2 rounded-xl font-bold">🔒 Login</Link>
+              ) : (
+                <Link href="/" className="text-sm border px-4 py-2 rounded-xl">Home</Link>
+              )}
+            </div>
           </div>
+
+          {authChecked && !isLoggedIn && (
+            <div className='bg-yellow-50 border-2 border-yellow-400 p-4 rounded-xl mt-4 text-center'>
+              <h3 className='font-bold text-[#5a1620]'>👀 Guest View</h3>
+              <p className='text-xs mt-1'>🔒 Please <Link href='/login' className='text-blue-600 underline font-bold'>Login</Link> or <Link href='/create-profile' className='text-blue-600 underline font-bold'>Create Profile</Link> to view full details, porondam matching & send interest</p>
+            </div>
+          )}
 
           {myProfiles.length>0 && (
             <div className='bg-white border-2 border-blue-200 p-3 rounded-xl mt-4 mb-2'>
@@ -258,7 +301,6 @@ export default function SearchPage(){
                 </select>
               </div>
             </div>
-            {/* NEW: Height min/max with max>min rule */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-bold">උස අවම cm</label>
@@ -273,7 +315,6 @@ export default function SearchPage(){
                 </select>
               </div>
             </div>
-            {/* NEW: Education filter for matching */}
             <div>
               <label className="text-xs font-bold">අධ්‍යාපනය</label>
               <select value={filters.education} onChange={e=>setFilters({...filters, education:e.target.value})} className="w-full mt-1 p-2 border rounded-xl text-sm bg-purple-50 border-purple-300">
@@ -293,17 +334,25 @@ export default function SearchPage(){
               const interestStatus = interests[p.id] || 'none'
               const isOwn = myIds.includes(p.id)
               const isPrivate =!isOwn && p.photo_privacy!==false && interestStatus!=='accepted'
+              const isGuest = !isLoggedIn
               return (
                 <div key={p.id} className="bg-gray-50 rounded overflow-hidden border hover:shadow-lg transition">
                   <div className="h-48 bg-gray-200 relative overflow-hidden">
-                    {photo? <img src={photo} alt={p.full_name||p.name} className="w-full h-full object-cover" style={{filter: isPrivate? 'blur(12px) brightness(0.9)' : 'none'}} /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Photo</div>}
-                    {isPrivate && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20"><span className="text-xl">🔒</span><span className="text- bg-white/90 px-2 py-0.5 rounded-full font-bold mt-1 text-black">Private until accepted</span></div>)}
+                    {photo? <img src={photo} alt={p.full_name||p.name} className="w-full h-full object-cover" style={{filter: isPrivate || isGuest ? 'blur(12px) brightness(0.9)' : 'none'}} /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Photo</div>}
+                    {(isPrivate || isGuest) && (<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20"><span className="text-xl">🔒</span><span className="text- bg-white/90 px-2 py-0.5 rounded-full font-bold mt-1 text-black text-xs">{isGuest ? 'Login to view' : 'Private until accepted'}</span></div>)}
                     <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded-full text-xs font-bold">{p.gender==='male'?'👨':'👩'} {age} {p.religion? `| ${p.religion}`:''}</div>
                   </div>
                   <div className="p-3">
                     <h3 className="font-bold">{p.full_name || p.name}</h3>
                     <p className="text-xs text-gray-600 mt-1">💼 {p.job_main || p.job} | {p.religion||'Any'} | {p.caste||''} | 🎓 {p.education||p.education_level||''} | 📏 {p.height_cm||p.height||''}cm</p>
-                    <div className="mt-3 flex gap-2"><Link href={`/profile/${p.id}`} className="flex-1 border text-center py-2 rounded-xl text-xs">View</Link><button onClick={()=>sendInterest(p)} className="flex-1 bg-[#2D8A4E] text-white py-2 rounded-xl text-xs font-bold">💌 Interest</button></div>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={()=>handleView(p.id)} className="flex-1 border text-center py-2 rounded-xl text-xs bg-white hover:bg-gray-50">
+                        {isLoggedIn ? 'View' : '🔒 Login to View'}
+                      </button>
+                      <button onClick={()=>handleInterestClick(p)} className="flex-1 bg-[#2D8A4E] text-white py-2 rounded-xl text-xs font-bold hover:bg-green-700">
+                        {isLoggedIn ? '💌 Interest' : '🔒 Login to Interest'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { calculateRealPorondam } from '@/lib/porondam-real';
 import { isProfileActive, getProfileExpiryInfo, getRenewalPrice } from '@/lib/subscription';
 
-const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com'];
+const ADMIN_EMAILS_RAW = ['manjula.upashantha@gmail.com','akm.upashantha@gmail.com','akmupashantha@gmail.com','heesara@gmail.com','manjulaupashantha@gmail.com','heesara.support@gmail.com'];
 function normalizeEmail(e:string){ return e.toLowerCase().replace(/\./g,'').replace(/\+.*@/, '@'); }
 const ADMIN_EMAILS = ADMIN_EMAILS_RAW.map(e=>e.toLowerCase());
 const ADMIN_NORMALIZED = ADMIN_EMAILS_RAW.map(e=>normalizeEmail(e));
@@ -20,16 +20,16 @@ const PORONDAM_20=[
   {id:5,name_si:'රාශි අධිපති',name_en:'Rashi Adhipathi',desc:'Lord'},
   {id:6,name_si:'වශ්ය',name_en:'Vashya',desc:'Attraction'},
   {id:7,name_si:'දින',name_en:'Dina',desc:'Day'},
-  {id:8,name_si:'මහේන්ද්ර',name_en:'Mahendra',desc:'Longevity'},
-  {id:9,name_si:'ස්ත්රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
+  {id:8,name_si:'මහේන්ද්‍ර',name_en:'Mahendra',desc:'Longevity'},
+  {id:9,name_si:'ස්ත්‍රී දීර්ඝ',name_en:'Sthree Deergha',desc:'Wife longevity'},
   {id:10,name_si:'වෘක්ෂ',name_en:'Vruksha',desc:'Tree'},
   {id:11,name_si:'රජ්ජු',name_en:'Rajju',desc:'Bond'},
   {id:12,name_si:'වේධ',name_en:'Vedha',desc:'Obstruction'},
   {id:13,name_si:'වර්ණ',name_en:'Varna',desc:'Caste'},
   {id:14,name_si:'නාඩි',name_en:'Nadi',desc:'Health'},
-  {id:15,name_si:'ග්රහ මෛත්රී',name_en:'Graha Maitri',desc:'Planet'},
+  {id:15,name_si:'ග්‍රහ මෛත්‍රී',name_en:'Graha Maitri',desc:'Planet'},
   {id:16,name_si:'භූත',name_en:'Bhootha',desc:'Element'},
-  {id:17,name_si:'ගෝත්ර',name_en:'Gothra',desc:'Clan'},
+  {id:17,name_si:'ගෝත්‍ර',name_en:'Gothra',desc:'Clan'},
   {id:18,name_si:'ලිංග',name_en:'Linga',desc:'Gender'},
   {id:19,name_si:'පක්ෂි',name_en:'Pakshi',desc:'Bird'},
   {id:20,name_si:'ආයු',name_en:'Ayu',desc:'Age'},
@@ -42,7 +42,7 @@ function scoreColor(s:number){
   return 'bg-red-100 border-red-200 text-red-800';
 }
 function getPorondamScore(a:any,b:any){
-  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්ය නැත'})), total:20, percent:100, note:'අවශ්ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
+  if(a?.horoscope_required!==true) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:1,max:1,match:true,details:'අවශ්‍ය නැත'})), total:20, percent:100, note:'අවශ්‍ය නැත', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   if(!a.birth_date||!b.birth_date) return { list: PORONDAM_20.map(p=>({...p,girlValue:'-',boyValue:'-',obtained:0,max:1,match:false,details:'දත්ත අඩුයි'})), total:0, percent:0, note:'දත්ත අඩුයි', lagnaA:null, lagnaB:null, isRajjuFail:false, debug:null };
   const real = calculateRealPorondam(a,b);
   const list = real.details.map((d:any)=>({...d, score:d.obtained, name_si:d.name_si, name_en:d.name_en}));
@@ -79,6 +79,11 @@ function matchesExact(exp:any, real:any){
 }
 
 function calculateMatchingBreakdown(viewer:any, candidate:any){
+  if(!viewer || !candidate) return { 
+    ageScore:0, heightScore:0, districtScore:0, religionScore:0, jobScore:0, casteScore:0, educationScore:0, 
+    porondamScore:0, porondamDetail:null, 
+    total:0 
+  };
   const ageScore = mutualScoreRange(viewer.age, candidate.age, viewer.expectation_age_min, viewer.expectation_age_max, candidate.expectation_age_min, candidate.expectation_age_max);
   const heightScore = mutualScoreRange(viewer.height_cm||viewer.height, candidate.height_cm||candidate.height, viewer.expectation_height_min, viewer.expectation_height_max, candidate.expectation_height_min, candidate.expectation_height_max);
   const viewerLiving = viewer.living_city||viewer.current_city||viewer.living_district_si||viewer.current_district_si||viewer.district||'';
@@ -122,9 +127,11 @@ export default function Page(){
   const [contact,setContact]=useState<any>(null);
   const [reporting,setReporting]=useState(false);
   const [adminVerifying,setAdminVerifying]=useState(false);
+  const [isLoggedIn,setIsLoggedIn]=useState(false);
 
   useEffect(()=>{ (async()=>{
     const {data:{user}} = await supabase.auth.getUser();
+    setIsLoggedIn(!!user);
     setIsAdmin(isAdminEmail(user?.email)); setMyEmail(user?.email||''); setAuthUid(user?.id||'');
     const {data} = await supabase.from('profiles').select('*').eq('id',id).single();
     setProfile(data);
@@ -140,8 +147,14 @@ export default function Page(){
     }
     const curId=localStorage.getItem('heesara_current_profile_id');
     let curData:any=null;
-    if(curId){ const {data:c}=await supabase.from('profiles').select('*').eq('id',curId).single(); curData=c; }
-    else if(user){ const {data:myData}=await supabase.from('profiles').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1); if(myData?.[0]){ curData=myData[0]; localStorage.setItem('heesara_current_profile_id', curData.id); } }
+    if(curId){ 
+      const {data:c}=await supabase.from('profiles').select('*').eq('id',curId).single(); 
+      curData=c; 
+    }
+    else if(user){ 
+      const {data:myData}=await supabase.from('profiles').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(1); 
+      if(myData?.[0]){ curData=myData[0]; localStorage.setItem('heesara_current_profile_id', curData.id); } 
+    }
     if(curData){ setCur(curData); setExpiry(getProfileExpiryInfo(curData)); setCanView((isProfileActive(curData) && curData.subscription_status!=='pending_payment') || isAdminEmail(user?.email)); setRenewalPrice(getRenewalPrice(curData)); }
     setLoading(false);
   })(); },[id]);
@@ -159,13 +172,17 @@ export default function Page(){
   })(); },[profile, cur]);
 
   const handleInterest = async () => {
+    if(!isLoggedIn){ 
+      const go=confirm('🔒 Please login to send interest\n\nLogin now?'); 
+      if(go) router.push('/login'); 
+      return; 
+    }
     if(!cur ||!profile) return;
     const viewerCanSend = isProfileActive(cur) && cur.subscription_status!=='pending_payment';
     if(!viewerCanSend &&!isAdmin){
         alert(`🔒 ${cur.full_name} is ${cur.subscription_status} - Please pay Rs.${renewalPrice} to send interests`);
         router.push('/account'); return;
     }
-    // NEW: Check viewer verification
     const viewerVer = (cur as any).verification_status || 'verified';
     if(viewerVer !== 'verified' && !isAdmin){
       alert(`🔒 Your profile is ${viewerVer} - Guardian verification pending. Admin must verify your guardian contact ${cur.guardian_contact} before you can send interests.`);
@@ -203,6 +220,7 @@ export default function Page(){
   };
 
   const handleReport = async () => {
+    if(!isLoggedIn){ router.push('/login'); return; }
     if(!cur || !profile) return;
     if(!confirm('Report this profile for spam / fun message? 3 reports will auto hide profile.')) return;
     setReporting(true);
@@ -250,6 +268,38 @@ export default function Page(){
   if(!profile) return <div className='p-8 text-center'>Not found {id}</div>;
 
   const main=profile.main_photo_url||profile.photo_urls?.[0];
+
+  // FIX: Guest view - show login guard instead of crash (prevents Application error)
+  if(!isLoggedIn){
+    return (
+      <div className='max-w-4xl mx-auto p-4 bg-[#FFFBEB] min-h-screen'>
+        <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
+        <div className='bg-yellow-50 border-2 border-yellow-400 p-8 rounded-2xl text-center'>
+          <h2 className='text-2xl font-bold text-[#5a1620]'>🔒 Login Required to View Profile</h2>
+          <p className='mt-3 text-sm text-gray-700'>You are viewing as guest. Search is open to see blurred previews, but full details need login.</p>
+          <p className='mt-2 text-[11px] text-gray-500'>විවාහ අපේක්ෂිතයන් සඳහා (18+ වයස) පමණයි - Please login to view full profile, photos, contact, porondam matching</p>
+          <div className='mt-6 flex gap-3 justify-center'>
+            <Link href='/login' className='bg-[#5a1620] text-white px-8 py-3 rounded-full font-bold'>🔑 Login</Link>
+            <Link href='/create-profile' className='bg-green-600 text-white px-8 py-3 rounded-full font-bold'>📝 Create Profile</Link>
+          </div>
+          <div className='mt-8 bg-white border rounded-xl p-4 text-left'>
+            <div className='flex gap-4'>
+              <div className='w-24 h-24 rounded-xl bg-gray-100 border-2 overflow-hidden relative'>
+                {main? <img src={main} className='w-full h-full object-cover' style={{filter:'blur(12px)'}}/> : <div className='w-full h-full flex items-center justify-center'>User</div>}
+                <div className='absolute inset-0 flex items-center justify-center bg-black/20 text-white font-bold text-xs'>🔒 Blurred</div>
+              </div>
+              <div>
+                <h3 className='font-bold'>{profile.full_name} - {profile.age}y</h3>
+                <div className='text-xs text-gray-600'>{profile.job} | {profile.living_city||profile.current_city} | {profile.religion}</div>
+                <div className='text-[11px] mt-1 text-gray-500'>Login to see full bio, education, horoscope, contact details</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isOwn = cur && cur.id === profile.id;
   const isMyProfile = myIds.includes(profile.id) || (profile.user_id === authUid);
   const isSameUser = isMyProfile;
@@ -258,7 +308,6 @@ export default function Page(){
   const candidateIsPaid = profile && isProfileActive(profile) && profile.subscription_status!=='pending_payment';
   const isAccepted = interestStatus==='accepted';
 
-  // NEW: Verification checks - backward compatible (null = verified for old profiles)
   const candidateVerStatus = profile.verification_status || 'verified';
   const candidateGuardianVerified = profile.guardian_verified ?? (candidateVerStatus==='verified');
   const candidateIsVerified = candidateVerStatus==='verified' && candidateGuardianVerified;
@@ -327,7 +376,7 @@ export default function Page(){
             <div className='bg-gray-50 border p-3 rounded-xl'>
               <div className='font-bold mb-1'>Family & Culture</div>
               <div>Religion: {profile.religion || '-'} | Caste: {profile.caste}</div>
-              <div>Family: {profile.family_details || 'උසස්/ වංශවත්'}</div>
+              <div>Family: {profile.family_details || 'කුලවත්/ වංශවත්'}</div>
               <div>Marital: {profile.marital_status || '-'}</div>
             </div>
           </div>
@@ -359,7 +408,6 @@ export default function Page(){
       <div className='flex justify-between mb-4'><button onClick={()=>router.back()} className='border bg-white px-4 py-2 rounded-full'>Back</button><Link href='/' className='border bg-white px-4 py-2 rounded-full'>Home</Link></div>
       {cur && <div className='bg-blue-50 border p-3 rounded-xl mb-4'><div className='font-bold'>{cur.full_name} බලන්නේ → {profile.full_name} සමග ගැලපීම {profile.verified_badge && <span className='bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2'>✓ Verified</span>} {candidateVerStatus!=='verified' && <span className='bg-yellow-500 text-white text-xs px-2 py-1 rounded-full ml-2'>{candidateVerStatus}</span>}</div>{!canView && <div className='mt-2 bg-red-100 border p-2 rounded-lg text-xs'>🔒 Pending - Pay Rs.{renewalPrice} → <button onClick={handlePay} className='bg-red-600 text-white px-3 py-1 rounded-full ml-2'>Pay Rs.{renewalPrice}</button></div>}{!viewerIsVerified && <div className='mt-2 bg-yellow-100 border p-2 rounded-lg text-xs'>⚠ Your profile not verified yet - guardian {cur.guardian_contact} pending. Contacts hidden until admin verifies.</div>}</div>}
 
-      {/* Admin Panel for verification */}
       {isAdmin && (
         <div className='bg-yellow-50 border-2 border-yellow-400 p-4 rounded-xl mb-4'>
           <h3 className='font-bold text-sm'>👑 Admin - Verification Control</h3>
@@ -443,14 +491,14 @@ export default function Page(){
             <div className='bg-yellow-50 border-2 border-yellow-300 p-4 rounded-xl text-center mt-2'>
               {!viewerIsPaid? (
                 <>
-                  <div className='font-bold text-red-700 text-lg'>🔒 {cur.full_name} is {cur.subscription_status} - Pay to Send Interest</div>
+                  <div className='font-bold text-red-700 text-lg'>🔒 {cur?.full_name || 'You'} is {cur?.subscription_status || 'not active'} - Pay to Send Interest</div>
                   <div className='text-xs mt-1'>Non-paid users cannot send interests. Your contact also hidden from others.</div>
                   <button onClick={handlePay} className='bg-green-600 text-white px-8 py-3 rounded-full font-bold mt-3'>Pay Rs.{renewalPrice} & Unlock Sending</button>
                 </>
               ) : !viewerIsVerified ? (
                 <>
                   <div className='font-bold text-yellow-700 text-lg'>⚠ Your profile not verified yet</div>
-                  <div className='text-xs mt-1'>Guardian {cur.guardian_contact} pending verification. Admin will call and release. Your contacts hidden from others until verified.</div>
+                  <div className='text-xs mt-1'>Guardian {cur?.guardian_contact} pending verification. Admin will call and release. Your contacts hidden from others until verified.</div>
                 </>
               ) : !candidateIsVerified ? (
                 <>
@@ -490,7 +538,7 @@ export default function Page(){
                     : 'Payment Required'}
                   </div>
                   <div className='text-sm mt-1'>
-                    {!viewerIsPaid? `Your profile ${cur.full_name} is ${cur.subscription_status}` 
+                    {!viewerIsPaid? `Your profile ${cur?.full_name || 'you'} is ${cur?.subscription_status || 'inactive'}` 
                     :!viewerIsVerified? `Your account is ${viewerVerStatus} - admin will contact ${cur?.guardian_contact}`
                     :!candidateIsVerified? `This profile is ${candidateVerStatus} - limited until guardian verified`
                     : `profile must be active to view contact`}
